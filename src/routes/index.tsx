@@ -276,7 +276,7 @@ function TypologyEditor({
   const [title, setTitle] = useState("");
   const [descs, setDescs] = useState<DraftDesc[]>([{ text: "" }]);
 
-  useMemo(() => {
+  useEffect(() => {
     if (state?.mode === "edit") {
       setTitle(state.typology.title);
       setDescs(

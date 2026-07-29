@@ -111,7 +111,7 @@ export const createTypology = createServerFn({ method: "POST" })
 
     const { data: created, error } = await supabase
       .from("typologies")
-      .insert({ user_id: userId, title: data.title, position: -Date.now() / 1000 })
+      .insert({ user_id: userId, title: data.title, position: Math.round(-Date.now() / 1000) })
       .select("id")
       .single();
     if (error) throw new Error(error.message);

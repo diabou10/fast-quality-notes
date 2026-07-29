@@ -1,13 +1,17 @@
 import { useCallback, useEffect, useState } from "react";
 import { SEED_TYPOLOGIES } from "@/data/typologies-seed";
 
+export type DescriptionKind = "pass" | "fail";
+
+export type Description = { id: string; kind: DescriptionKind; text: string };
+
 export type Typology = {
   id: string;
   title: string;
-  descriptions: { id: string; text: string }[];
+  descriptions: Description[];
 };
 
-const STORAGE_KEY = "qualitynotes.typologies.v1";
+const STORAGE_KEY = "qualitynotes.typologies.v2";
 
 const uid = () =>
   typeof crypto !== "undefined" && "randomUUID" in crypto
@@ -18,7 +22,7 @@ function seed(): Typology[] {
   return SEED_TYPOLOGIES.map((t) => ({
     id: uid(),
     title: t.title,
-    descriptions: t.descriptions.map((text) => ({ id: uid(), text })),
+    descriptions: t.descriptions.map((d) => ({ id: uid(), kind: d.kind, text: d.text })),
   }));
 }
 
@@ -29,7 +33,14 @@ function load(): Typology[] {
     if (!raw) return seed();
     const parsed = JSON.parse(raw) as Typology[];
     if (!Array.isArray(parsed) || parsed.length === 0) return seed();
-    return parsed;
+    return parsed.map((t) => ({
+      ...t,
+      descriptions: (t.descriptions ?? []).map((d) => ({
+        id: d.id ?? uid(),
+        kind: d.kind === "fail" ? "fail" : "pass",
+        text: d.text,
+      })),
+    }));
   } catch {
     return seed();
   }
@@ -54,14 +65,16 @@ export function useTypologies() {
   }, [typologies, hydrated]);
 
   const addTypology = useCallback(
-    (title: string, descriptions: string[]) => {
-      const clean = descriptions.map((t) => t.trim()).filter(Boolean);
+    (title: string, descriptions: { kind: DescriptionKind; text: string }[]) => {
+      const clean = descriptions
+        .map((d) => ({ kind: d.kind, text: d.text.trim() }))
+        .filter((d) => d.text.length > 0);
       const id = uid();
       setTypologies((prev) => [
         {
           id,
           title: title.trim(),
-          descriptions: clean.map((text) => ({ id: uid(), text })),
+          descriptions: clean.map((d) => ({ id: uid(), ...d })),
         },
         ...prev,
       ]);
@@ -71,7 +84,11 @@ export function useTypologies() {
   );
 
   const updateTypology = useCallback(
-    (id: string, title: string, descriptions: { id?: string; text: string }[]) => {
+    (
+      id: string,
+      title: string,
+      descriptions: { id?: string; kind: DescriptionKind; text: string }[],
+    ) => {
       setTypologies((prev) =>
         prev.map((t) =>
           t.id === id
@@ -79,7 +96,11 @@ export function useTypologies() {
                 ...t,
                 title: title.trim(),
                 descriptions: descriptions
-                  .map((d) => ({ id: d.id ?? uid(), text: d.text.trim() }))
+                  .map((d) => ({
+                    id: d.id ?? uid(),
+                    kind: d.kind,
+                    text: d.text.trim(),
+                  }))
                   .filter((d) => d.text.length > 0),
               }
             : t,

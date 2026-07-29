@@ -1,5 +1,13 @@
-import { useCallback, useEffect, useState } from "react";
-import { SEED_TYPOLOGIES } from "@/data/typologies-seed";
+import { useCallback, useEffect, useRef } from "react";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { useServerFn } from "@tanstack/react-start";
+import {
+  bootstrapTypologies,
+  createTypology,
+  deleteTypology as deleteTypologyFn,
+  listTypologies,
+  updateTypology as updateTypologyFn,
+} from "@/lib/typologies.functions";
 
 export type DescriptionKind = "pass" | "fail";
 
@@ -11,76 +19,83 @@ export type Typology = {
   descriptions: Description[];
 };
 
-const STORAGE_KEY = "qualitynotes.typologies.v2";
+const LEGACY_KEY = "qualitynotes.typologies.v2";
 
-const uid = () =>
-  typeof crypto !== "undefined" && "randomUUID" in crypto
-    ? crypto.randomUUID()
-    : Math.random().toString(36).slice(2);
-
-function seed(): Typology[] {
-  return SEED_TYPOLOGIES.map((t) => ({
-    id: uid(),
-    title: t.title,
-    descriptions: t.descriptions.map((d) => ({ id: uid(), kind: d.kind, text: d.text })),
-  }));
-}
-
-function load(): Typology[] {
-  if (typeof window === "undefined") return [];
+/** Reads any data saved by the old local-only version, to import it once. */
+function readLegacyLocal() {
+  if (typeof window === "undefined") return undefined;
   try {
-    const raw = window.localStorage.getItem(STORAGE_KEY);
-    if (!raw) return seed();
+    const raw = window.localStorage.getItem(LEGACY_KEY);
+    if (!raw) return undefined;
     const parsed = JSON.parse(raw) as Typology[];
-    if (!Array.isArray(parsed) || parsed.length === 0) return seed();
-    return parsed.map((t) => ({
-      ...t,
-      descriptions: (t.descriptions ?? []).map((d) => ({
-        id: d.id ?? uid(),
-        kind: d.kind === "fail" ? "fail" : "pass",
-        text: d.text,
-      })),
-    }));
+    if (!Array.isArray(parsed) || parsed.length === 0) return undefined;
+    return parsed
+      .map((t) => ({
+        title: (t.title ?? "").trim(),
+        descriptions: (t.descriptions ?? [])
+          .map((d) => ({
+            kind: d.kind === "fail" ? ("fail" as const) : ("pass" as const),
+            text: (d.text ?? "").trim(),
+          }))
+          .filter((d) => d.text.length > 0),
+      }))
+      .filter((t) => t.title.length > 0);
   } catch {
-    return seed();
+    return undefined;
   }
 }
 
 export function useTypologies() {
-  const [typologies, setTypologies] = useState<Typology[]>([]);
-  const [hydrated, setHydrated] = useState(false);
+  const queryClient = useQueryClient();
+  const list = useServerFn(listTypologies);
+  const bootstrap = useServerFn(bootstrapTypologies);
+  const create = useServerFn(createTypology);
+  const update = useServerFn(updateTypologyFn);
+  const remove = useServerFn(deleteTypologyFn);
+  const bootstrapped = useRef(false);
+
+  const query = useQuery({
+    queryKey: ["typologies"],
+    queryFn: () => list(),
+  });
 
   useEffect(() => {
-    setTypologies(load());
-    setHydrated(true);
-  }, []);
+    if (bootstrapped.current) return;
+    if (!query.isSuccess || (query.data && query.data.length > 0)) return;
+    bootstrapped.current = true;
+    void bootstrap({ data: { local: readLegacyLocal() } })
+      .then((res) => {
+        if (res.seeded) {
+          try {
+            window.localStorage.removeItem(LEGACY_KEY);
+          } catch {
+            // ignore
+          }
+          void queryClient.invalidateQueries({ queryKey: ["typologies"] });
+        }
+      })
+      .catch(() => {
+        bootstrapped.current = false;
+      });
+  }, [query.isSuccess, query.data, bootstrap, queryClient]);
 
-  useEffect(() => {
-    if (!hydrated) return;
-    try {
-      window.localStorage.setItem(STORAGE_KEY, JSON.stringify(typologies));
-    } catch {
-      // ignore
-    }
-  }, [typologies, hydrated]);
+  const invalidate = useCallback(
+    () => queryClient.invalidateQueries({ queryKey: ["typologies"] }),
+    [queryClient],
+  );
+
+  const createMutation = useMutation({ mutationFn: create, onSuccess: invalidate });
+  const updateMutation = useMutation({ mutationFn: update, onSuccess: invalidate });
+  const deleteMutation = useMutation({ mutationFn: remove, onSuccess: invalidate });
 
   const addTypology = useCallback(
     (title: string, descriptions: { kind: DescriptionKind; text: string }[]) => {
       const clean = descriptions
         .map((d) => ({ kind: d.kind, text: d.text.trim() }))
         .filter((d) => d.text.length > 0);
-      const id = uid();
-      setTypologies((prev) => [
-        {
-          id,
-          title: title.trim(),
-          descriptions: clean.map((d) => ({ id: uid(), ...d })),
-        },
-        ...prev,
-      ]);
-      return id;
+      createMutation.mutate({ data: { title: title.trim(), descriptions: clean } });
     },
-    [],
+    [createMutation],
   );
 
   const updateTypology = useCallback(
@@ -89,41 +104,26 @@ export function useTypologies() {
       title: string,
       descriptions: { id?: string; kind: DescriptionKind; text: string }[],
     ) => {
-      setTypologies((prev) =>
-        prev.map((t) =>
-          t.id === id
-            ? {
-                ...t,
-                title: title.trim(),
-                descriptions: descriptions
-                  .map((d) => ({
-                    id: d.id ?? uid(),
-                    kind: d.kind,
-                    text: d.text.trim(),
-                  }))
-                  .filter((d) => d.text.length > 0),
-              }
-            : t,
-        ),
-      );
+      const clean = descriptions
+        .map((d) => ({ kind: d.kind, text: d.text.trim() }))
+        .filter((d) => d.text.length > 0);
+      updateMutation.mutate({ data: { id, title: title.trim(), descriptions: clean } });
     },
-    [],
+    [updateMutation],
   );
 
-  const deleteTypology = useCallback((id: string) => {
-    setTypologies((prev) => prev.filter((t) => t.id !== id));
-  }, []);
-
-  const resetToSeed = useCallback(() => {
-    setTypologies(seed());
-  }, []);
+  const deleteTypology = useCallback(
+    (id: string) => deleteMutation.mutate({ data: { id } }),
+    [deleteMutation],
+  );
 
   return {
-    typologies,
-    hydrated,
+    typologies: query.data ?? [],
+    loading: query.isPending,
+    saving:
+      createMutation.isPending || updateMutation.isPending || deleteMutation.isPending,
     addTypology,
     updateTypology,
     deleteTypology,
-    resetToSeed,
   };
 }

@@ -1,86 +1,54 @@
+## Où sont tes données aujourd'hui
+
+Dans le `localStorage` du navigateur (clé `qualitynotes.typologies.v2`), via `src/hooks/use-typologies.ts`. C'est du stockage **local à chaque navigateur** : aucune donnée n'est envoyée au serveur. D'où ton test — l'autre personne modifie sa copie locale, invisible pour toi (et perdue si elle vide son cache ou change d'appareil).
+
 ## Objectif
 
-Étendre l'app actuelle avec :
-1. La base de typologies issue du PDF (14 catégories, chacune avec 1 à 3 variantes de description).
-2. La possibilité d'ajouter / modifier / supprimer des typologies et leurs descriptions.
-3. Recherche instantanée + bouton Copier (déjà en place, à adapter au nouveau modèle).
+Chaque utilisateur a un compte, retrouve ses données sur n'importe quel appareil, et démarre avec la base pré-remplie (17 process / 52 descriptions) — privée et modifiable individuellement.
 
-## Modèle de données
+## Ce qu'on met en place
 
-Nouveau schéma : une typologie = un titre (ex. "Refund") + une liste de variantes de description (car le PDF en fournit plusieurs par catégorie).
+**1. Lovable Cloud (backend intégré)**
+Base de données + authentification, sans compte externe à créer.
 
-```ts
-type Typology = {
-  id: string;
-  title: string;         // ex: "Refund", "Recover PIN"
-  category?: string;     // optionnel (Pass/Fail/Note), non requis
-  descriptions: string[]; // 1..n variantes
-};
+**2. Authentification**
+- Email / mot de passe
+- Connexion Google (SSO) en un clic
+- Page `/auth` (connexion + inscription), déconnexion dans le header
+- L'app devient privée : sans connexion → redirection vers `/auth`
+
+**3. Base de données (privée par utilisateur)**
+
+```text
+typologies
+  id, user_id, title, position, created_at
+
+descriptions
+  id, typology_id, user_id, kind ('pass'|'fail'), text, position, created_at
 ```
 
-Chaque variante affiche son propre bouton "Copier".
+Sécurité au niveau des lignes (RLS) : chaque utilisateur ne peut lire/écrire **que** ses propres lignes. Aucune donnée partagée, aucun accès croisé possible.
 
-## Persistance
+**4. Pré-remplissage automatique**
+À la première connexion, les 17 process et 52 descriptions du seed actuel sont copiés dans le compte de l'utilisateur. Ensuite il ajoute / modifie / supprime librement — ça n'affecte personne d'autre.
 
-Stockage local via `localStorage` (clé `qualitynotes.typologies.v1`) :
-- ultra-rapide, aucun backend, aucune auth
-- au 1er chargement, on seed avec les données du PDF
-- CRUD purement client
+**5. Migration des données existantes**
+À la première connexion, si le navigateur contient déjà des données locales, on propose de les importer dans le compte (sinon on charge le seed). Ça évite de perdre ce que tu as déjà saisi.
 
-Pas de Lovable Cloud pour rester "simple et ultra-rapide" (usage mono-utilisateur). Si tu veux synchroniser entre appareils plus tard, on activera Cloud.
-
-## Données seed (extraites du PDF)
-
-Refund, Recover PIN, Reset PIN, Forget QR, Device Restriction, Lost Phone, Security Challenge, Vault, B2W, Minor Request, Turn, Terminate Account, Rebalance, SMS Code — avec les descriptions exactes du fichier (le bloc "Refund" contient aussi les 3 notes complémentaires trouvées en bas du PDF : "La rep n'a pas effectué le remboursement…", etc., ajoutées comme variantes supplémentaires).
-
-## UI (une seule page, `src/routes/index.tsx`)
-
-```
-┌──────────────────────────────────────────┐
-│  Typologies                [+ Ajouter]   │
-│  ┌────────────────────────────────────┐  │
-│  │ 🔍 Rechercher…            14 rés.  │  │
-│  └────────────────────────────────────┘  │
-│                                          │
-│  ┌── Refund ────────── ✏️ 🗑️ ─────────┐ │
-│  │ • Ce client souhaite annuler…  📋 │ │
-│  │ • La cliente souhaitait annuler📋 │ │
-│  │ • Cette cliente a effectué…    📋 │ │
-│  │ [+ Ajouter une variante]           │ │
-│  └────────────────────────────────────┘ │
-│  ┌── Recover PIN ─────── ✏️ 🗑️ ──────┐ │
-│  │ …                                  │ │
-│  └────────────────────────────────────┘ │
-└──────────────────────────────────────────┘
-```
-
-Interactions :
-- **Recherche** : match sur titre + toutes les variantes. Si un mot matche seulement certaines variantes, seules celles-ci sont affichées dans la carte (les autres masquées).
-- **Copier** : bouton par variante, feedback "Copié" 1,4 s (déjà en place).
-- **Ajouter typologie** : dialog (shadcn `Dialog`) avec champ Titre + 1 champ Description (multi-ligne). Bouton "+ variante" dans le dialog.
-- **Éditer typologie** : même dialog pré-rempli ; permet de renommer, éditer / supprimer chaque variante, ajouter une variante.
-- **Supprimer typologie** : confirmation inline (AlertDialog).
-- **Ajouter variante rapide** depuis la carte : bouton discret en bas de carte ouvre le dialog d'édition sur la variante vide.
+**6. Interface**
+Aucun changement visuel majeur : même recherche instantanée, mêmes badges Pass/Fail, mêmes boutons Copier / Éditer / Supprimer. Seuls ajouts : écran de connexion, avatar + déconnexion dans le header, et un léger indicateur de sauvegarde.
 
 ## Détails techniques
 
-- Composants shadcn utilisés : `Dialog`, `AlertDialog`, `Button`, `Input`, `Textarea`, `Badge`. Ceux qui manquent seront ajoutés (fichiers `src/components/ui/*.tsx` déjà présents pour la plupart ; on créera ceux qui manquent au moment de l'implémentation).
-- Nouveau hook `src/hooks/use-typologies.ts` : charge depuis localStorage (seed si vide), expose `typologies`, `addTypology`, `updateTypology`, `deleteTypology`, `addDescription`, `updateDescription`, `deleteDescription`. Persiste à chaque changement.
-- Données seed dans `src/data/typologies-seed.ts` (texte exact du PDF, apostrophes typographiques nettoyées).
-- `id` généré via `crypto.randomUUID()`.
-- Recherche : `useMemo` insensible aux accents (`.normalize('NFD').replace(/\p{Diacritic}/gu, '')`) pour matcher "reference" / "référence".
-- Métadonnées `head()` de la route inchangées.
-
-## Étapes d'implémentation
-
-1. Créer `src/data/typologies-seed.ts` avec les 14 typologies extraites du PDF.
-2. Créer `src/hooks/use-typologies.ts` (CRUD + localStorage + seed).
-3. Ajouter les composants shadcn manquants (`dialog`, `alert-dialog`, `textarea` si absents).
-4. Réécrire `src/routes/index.tsx` : header + barre de recherche + liste des cartes + dialogs d'ajout/édition + confirmations de suppression. Conserver le style épuré actuel (tokens `bg-card`, `border-border`, `text-foreground`, etc.).
-5. Vérifier le rendu (recherche, copier, add/edit/delete, refresh conserve les modifs).
+- Activation Lovable Cloud, puis migration SQL créant les 2 tables avec `GRANT` + RLS scopée sur `auth.uid()`.
+- Lecture/écriture via server functions authentifiées (`requireSupabaseAuth`), routes protégées sous `src/routes/_authenticated/`.
+- Route publique `/` = page d'accueil avec bouton « Se connecter » ; l'app passe sous `/app`.
+- `use-typologies.ts` réécrit : TanStack Query (`useQuery` + mutations) au lieu de `localStorage`, avec mise à jour optimiste pour garder la sensation « ultra-rapide ».
+- Seeding effectué côté serveur à la première session (fonction serveur idempotente).
+- Configuration Google via `supabase--configure_social_auth`.
 
 ## Hors périmètre
 
-- Pas de synchro multi-appareils / multi-utilisateurs (localStorage seulement).
-- Pas d'import/export JSON (peut être ajouté ensuite si besoin).
-- Pas de catégories Pass/Fail (le PDF ne les utilise pas explicitement — remplacé par variantes multiples).
+- Pas de partage / collaboration entre comptes (chaque base reste privée).
+- Pas de mode hors-ligne.
+- SSO limité à Google (Apple possible ensuite si tu veux).

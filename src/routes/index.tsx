@@ -1,7 +1,11 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useEffect, useMemo, useState } from "react";
 import { Check, Copy, Pencil, Plus, Search, Trash2, X } from "lucide-react";
-import { useTypologies, type Typology } from "@/hooks/use-typologies";
+import {
+  useTypologies,
+  type Typology,
+  type DescriptionKind,
+} from "@/hooks/use-typologies";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -63,24 +67,27 @@ function Index() {
   const [copiedId, setCopiedId] = useState<string | null>(null);
   const [editor, setEditor] = useState<EditorState>(null);
   const [toDelete, setToDelete] = useState<Typology | null>(null);
+  const [kindFilter, setKindFilter] = useState<"all" | DescriptionKind>("all");
 
   const results = useMemo(() => {
     const q = norm(query.trim());
-    if (!q) {
-      return typologies.map((t) => ({ typology: t, descriptions: t.descriptions }));
-    }
     const out: { typology: Typology; descriptions: Typology["descriptions"] }[] = [];
     for (const t of typologies) {
-      const titleMatch = norm(t.title).includes(q);
-      const matched = t.descriptions.filter((d) => norm(d.text).includes(q));
-      if (titleMatch) {
-        out.push({ typology: t, descriptions: t.descriptions });
-      } else if (matched.length > 0) {
-        out.push({ typology: t, descriptions: matched });
+      const pool = t.descriptions.filter(
+        (d) => kindFilter === "all" || d.kind === kindFilter,
+      );
+      if (pool.length === 0) continue;
+      if (!q) {
+        out.push({ typology: t, descriptions: pool });
+        continue;
       }
+      const titleMatch = norm(t.title).includes(q);
+      const matched = pool.filter((d) => norm(d.text).includes(q));
+      if (titleMatch) out.push({ typology: t, descriptions: pool });
+      else if (matched.length > 0) out.push({ typology: t, descriptions: matched });
     }
     return out;
-  }, [query, typologies]);
+  }, [query, typologies, kindFilter]);
 
   const handleCopy = async (id: string, text: string) => {
     try {
@@ -133,6 +140,23 @@ function Index() {
           </div>
         </div>
 
+        <div className="mt-4 flex items-center gap-2">
+          {(["all", "pass", "fail"] as const).map((k) => (
+            <button
+              key={k}
+              type="button"
+              onClick={() => setKindFilter(k)}
+              className={`rounded-full border px-3 py-1 text-xs font-medium transition ${
+                kindFilter === k
+                  ? "border-foreground bg-foreground text-background"
+                  : "border-border bg-card text-muted-foreground hover:text-foreground"
+              }`}
+            >
+              {k === "all" ? "Tout" : k === "pass" ? "Pass" : "Fail"}
+            </button>
+          ))}
+        </div>
+
         <ul className="mt-6 space-y-3">
           {results.map(({ typology, descriptions }) => (
             <li
@@ -144,9 +168,11 @@ function Index() {
                   <h2 className="truncate text-base font-semibold text-foreground">
                     {typology.title}
                   </h2>
-                  <span className="rounded-full border border-border bg-muted px-2 py-0.5 text-[10px] font-medium uppercase tracking-wider text-muted-foreground">
-                    {typology.descriptions.length} variante
-                    {typology.descriptions.length > 1 ? "s" : ""}
+                  <span className="rounded-full border border-emerald-500/30 bg-emerald-500/10 px-2 py-0.5 text-[10px] font-medium uppercase tracking-wider text-emerald-600">
+                    {typology.descriptions.filter((d) => d.kind === "pass").length} pass
+                  </span>
+                  <span className="rounded-full border border-destructive/30 bg-destructive/10 px-2 py-0.5 text-[10px] font-medium uppercase tracking-wider text-destructive">
+                    {typology.descriptions.filter((d) => d.kind === "fail").length} fail
                   </span>
                 </div>
                 <div className="flex shrink-0 items-center gap-1">
@@ -177,9 +203,20 @@ function Index() {
                       key={d.id}
                       className="flex items-start justify-between gap-3 rounded-xl border border-border/60 bg-background/60 p-3"
                     >
-                      <p className="text-sm leading-relaxed text-foreground/90">
-                        {d.text}
-                      </p>
+                      <div className="min-w-0">
+                        <span
+                          className={`mb-1.5 inline-block rounded-md border px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wider ${
+                            d.kind === "pass"
+                              ? "border-emerald-500/30 bg-emerald-500/10 text-emerald-600"
+                              : "border-destructive/30 bg-destructive/10 text-destructive"
+                          }`}
+                        >
+                          {d.kind}
+                        </span>
+                        <p className="text-sm leading-relaxed text-foreground/90">
+                          {d.text}
+                        </p>
+                      </div>
                       <button
                         type="button"
                         onClick={() => handleCopy(d.id, d.text)}
@@ -255,7 +292,7 @@ function Index() {
   );
 }
 
-type DraftDesc = { id?: string; text: string };
+type DraftDesc = { id?: string; kind: DescriptionKind; text: string };
 
 function TypologyEditor({
   state,
@@ -265,7 +302,10 @@ function TypologyEditor({
 }: {
   state: EditorState;
   onClose: () => void;
-  onCreate: (title: string, descriptions: string[]) => void;
+  onCreate: (
+    title: string,
+    descriptions: { kind: DescriptionKind; text: string }[],
+  ) => void;
   onUpdate: (
     id: string,
     title: string,
@@ -274,17 +314,21 @@ function TypologyEditor({
 }) {
   const open = state !== null;
   const [title, setTitle] = useState("");
-  const [descs, setDescs] = useState<DraftDesc[]>([{ text: "" }]);
+  const [descs, setDescs] = useState<DraftDesc[]>([{ kind: "pass", text: "" }]);
 
   useEffect(() => {
     if (state?.mode === "edit") {
       setTitle(state.typology.title);
       setDescs(
-        state.typology.descriptions.map((d) => ({ id: d.id, text: d.text })),
+        state.typology.descriptions.map((d) => ({
+          id: d.id,
+          kind: d.kind,
+          text: d.text,
+        })),
       );
     } else if (state?.mode === "create") {
       setTitle("");
-      setDescs([{ text: "" }]);
+      setDescs([{ kind: "pass", text: "" }]);
     }
   }, [state]);
 
@@ -298,7 +342,7 @@ function TypologyEditor({
     } else {
       onCreate(
         trimmedTitle,
-        cleaned.map((d) => d.text),
+        cleaned.map((d) => ({ kind: d.kind, text: d.text })),
       );
     }
   };
@@ -332,6 +376,26 @@ function TypologyEditor({
             <div className="max-h-[45vh] space-y-2 overflow-y-auto pr-1">
               {descs.map((d, idx) => (
                 <div key={idx} className="flex items-start gap-2">
+                  <div className="mt-1 flex flex-col gap-1">
+                    {(["pass", "fail"] as const).map((k) => (
+                      <button
+                        key={k}
+                        type="button"
+                        onClick={() =>
+                          setDescs((prev) =>
+                            prev.map((p, i) => (i === idx ? { ...p, kind: k } : p)),
+                          )
+                        }
+                        className={`rounded-md border px-2 py-1 text-[10px] font-semibold uppercase transition ${
+                          d.kind === k
+                            ? "border-foreground bg-foreground text-background"
+                            : "border-border text-muted-foreground hover:text-foreground"
+                        }`}
+                      >
+                        {k}
+                      </button>
+                    ))}
+                  </div>
                   <Textarea
                     value={d.text}
                     onChange={(e) =>
@@ -349,7 +413,7 @@ function TypologyEditor({
                     onClick={() =>
                       setDescs((prev) =>
                         prev.length === 1
-                          ? [{ text: "" }]
+                          ? [{ kind: "pass", text: "" }]
                           : prev.filter((_, i) => i !== idx),
                       )
                     }
@@ -365,7 +429,9 @@ function TypologyEditor({
               type="button"
               variant="outline"
               size="sm"
-              onClick={() => setDescs((prev) => [...prev, { text: "" }])}
+              onClick={() =>
+                setDescs((prev) => [...prev, { kind: "pass", text: "" }])
+              }
             >
               <Plus className="mr-1.5 h-3.5 w-3.5" /> Ajouter une variante
             </Button>

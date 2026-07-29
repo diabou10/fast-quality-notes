@@ -1,5 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Check, Copy, Pencil, Plus, Search, Trash2, X } from "lucide-react";
 import { useTypologies, type Typology } from "@/hooks/use-typologies";
 import { Button } from "@/components/ui/button";

@@ -162,31 +162,41 @@ function AppPage() {
               value={query}
               onChange={(e) => setQuery(e.target.value)}
               placeholder="Rechercher une typologie (ex: Refund)…"
-              className="w-full rounded-2xl border border-border bg-card py-4 pl-12 pr-20 text-base text-foreground shadow-sm outline-none transition placeholder:text-muted-foreground focus:border-ring focus:ring-4 focus:ring-ring/15"
+              className="w-full rounded-2xl border border-primary/25 bg-card py-4 pl-12 pr-20 text-base text-foreground shadow-sm outline-none transition placeholder:text-muted-foreground focus:border-primary focus:ring-4 focus:ring-primary/20"
               aria-label="Rechercher une typologie"
             />
-            <kbd className="pointer-events-none absolute right-4 top-1/2 hidden -translate-y-1/2 select-none rounded-md border border-border bg-muted px-2 py-1 text-[10px] font-medium text-muted-foreground sm:inline-block">
+            <kbd className="pointer-events-none absolute right-4 top-1/2 hidden -translate-y-1/2 select-none rounded-md border border-primary/20 bg-primary/10 px-2 py-1 text-[10px] font-medium text-primary sm:inline-block">
               {results.length} résultat{results.length > 1 ? "s" : ""}
             </kbd>
           </div>
         </div>
 
         <div className="mt-4 flex items-center gap-2">
-          {(["all", "pass", "fail"] as const).map((k) => (
-            <button
-              key={k}
-              type="button"
-              onClick={() => setKindFilter(k)}
-              className={`rounded-full border px-3 py-1 text-xs font-medium transition ${
-                kindFilter === k
-                  ? "border-foreground bg-foreground text-background"
-                  : "border-border bg-card text-muted-foreground hover:text-foreground"
-              }`}
-            >
-              {k === "all" ? "Tout" : k === "pass" ? "Pass" : "Fail"}
-            </button>
-          ))}
+          {(["all", "pass", "fail"] as const).map((k) => {
+            const active = kindFilter === k;
+            const activeClass =
+              k === "pass"
+                ? "border-success bg-success text-success-foreground"
+                : k === "fail"
+                  ? "border-destructive bg-destructive text-destructive-foreground"
+                  : "border-primary bg-primary text-primary-foreground";
+            return (
+              <button
+                key={k}
+                type="button"
+                onClick={() => setKindFilter(k)}
+                className={`rounded-full border px-3 py-1 text-xs font-medium transition ${
+                  active
+                    ? activeClass
+                    : "border-border bg-card text-muted-foreground hover:border-primary/40 hover:text-primary"
+                }`}
+              >
+                {k === "all" ? "Tout" : k === "pass" ? "Pass" : "Fail"}
+              </button>
+            );
+          })}
         </div>
+
 
         <ul className="mt-6 space-y-3">
           {results.map(({ typology, descriptions }) => (

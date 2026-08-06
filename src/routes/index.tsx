@@ -68,24 +68,35 @@ function Landing() {
               icon: Search,
               title: "Recherche instantanée",
               text: "Filtre titres et descriptions en temps réel, sans accent près.",
+              tone: "text-primary bg-primary/10",
             },
             {
               icon: Copy,
               title: "Copie en un clic",
               text: "Chaque variante se copie directement dans ton presse-papiers.",
+              tone: "text-success bg-success/10",
             },
             {
               icon: Lock,
               title: "Base privée",
               text: "Tes ajouts et modifications ne sont visibles que par toi.",
+              tone: "text-info bg-info/10",
             },
-          ].map(({ icon: Icon, title, text }) => (
-            <li key={title} className="rounded-2xl border border-border bg-card p-5">
-              <Icon className="h-5 w-5 text-muted-foreground" aria-hidden />
+          ].map(({ icon: Icon, title, text, tone }) => (
+            <li
+              key={title}
+              className="rounded-2xl border border-border bg-card p-5 transition hover:border-primary/40 hover:shadow-md"
+            >
+              <span
+                className={`inline-flex h-9 w-9 items-center justify-center rounded-xl ${tone}`}
+              >
+                <Icon className="h-5 w-5" aria-hidden />
+              </span>
               <h2 className="mt-3 text-sm font-semibold text-foreground">{title}</h2>
               <p className="mt-1 text-sm text-muted-foreground">{text}</p>
             </li>
           ))}
+
         </ul>
       </div>
     </main>

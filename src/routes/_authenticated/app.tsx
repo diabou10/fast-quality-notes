@@ -202,20 +202,22 @@ function AppPage() {
           {results.map(({ typology, descriptions }) => (
             <li
               key={typology.id}
-              className="group rounded-2xl border border-border bg-card p-5 shadow-sm transition hover:border-ring/40"
+              className="group rounded-2xl border border-border bg-card p-5 shadow-sm transition hover:border-primary/50 hover:shadow-md"
             >
               <div className="flex items-start justify-between gap-4">
                 <div className="flex min-w-0 items-center gap-2">
+                  <span className="h-6 w-1.5 shrink-0 rounded-full bg-gradient-to-b from-primary to-info" aria-hidden />
                   <h2 className="truncate text-base font-semibold text-foreground">
                     {typology.title}
                   </h2>
-                  <span className="rounded-full border border-emerald-500/30 bg-emerald-500/10 px-2 py-0.5 text-[10px] font-medium uppercase tracking-wider text-emerald-600">
+                  <span className="rounded-full border border-success/30 bg-success/10 px-2 py-0.5 text-[10px] font-medium uppercase tracking-wider text-success">
                     {typology.descriptions.filter((d) => d.kind === "pass").length} pass
                   </span>
                   <span className="rounded-full border border-destructive/30 bg-destructive/10 px-2 py-0.5 text-[10px] font-medium uppercase tracking-wider text-destructive">
                     {typology.descriptions.filter((d) => d.kind === "fail").length} fail
                   </span>
                 </div>
+
                 <div className="flex shrink-0 items-center gap-1">
                   <button
                     type="button"

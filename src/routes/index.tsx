@@ -36,18 +36,23 @@ function Landing() {
   }, [navigate]);
 
   return (
-    <main className="min-h-screen bg-background">
+    <main className="min-h-screen bg-gradient-to-b from-accent/50 via-background to-background">
       <div className="mx-auto max-w-3xl px-6 py-24">
-        <p className="text-xs font-medium uppercase tracking-widest text-muted-foreground">
+        <p className="text-xs font-medium uppercase tracking-widest text-primary">
           Quality Evaluation
         </p>
         <h1 className="mt-3 text-4xl font-semibold tracking-tight text-foreground sm:text-5xl">
-          Rédige tes notes d'évaluation qualité en quelques secondes.
+          Rédige tes notes d'évaluation qualité en{" "}
+          <span className="bg-gradient-to-r from-primary to-info bg-clip-text text-transparent">
+            quelques secondes
+          </span>
+          .
         </h1>
         <p className="mt-4 max-w-xl text-base text-muted-foreground">
           Ta base de typologies personnelle : recherche instantanée, variantes Pass /
           Fail, et copie en un clic. Chaque compte a sa propre base, privée.
         </p>
+
 
         <div className="mt-8 flex flex-wrap gap-3">
           <Button asChild size="lg">

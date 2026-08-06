@@ -115,16 +115,17 @@ function AppPage() {
   };
 
   return (
-    <div className="min-h-screen bg-background">
+    <div className="min-h-screen bg-gradient-to-b from-accent/40 via-background to-background">
       <div className="mx-auto max-w-4xl px-6 py-10">
         <header className="mb-8 flex items-start justify-between gap-4">
           <div>
-            <p className="text-xs font-medium uppercase tracking-widest text-muted-foreground">
+            <p className="text-xs font-medium uppercase tracking-widest text-primary">
               Quality Evaluation
             </p>
-            <h1 className="mt-2 text-3xl font-semibold tracking-tight text-foreground">
+            <h1 className="mt-2 bg-gradient-to-r from-primary to-info bg-clip-text text-3xl font-semibold tracking-tight text-transparent">
               Typologies
             </h1>
+
             <p className="mt-1 text-sm text-muted-foreground">
               {email ? `Base privée de ${email}` : "Recherche, édite et copie en un clic."}
             </p>
@@ -161,55 +162,68 @@ function AppPage() {
               value={query}
               onChange={(e) => setQuery(e.target.value)}
               placeholder="Rechercher une typologie (ex: Refund)…"
-              className="w-full rounded-2xl border border-border bg-card py-4 pl-12 pr-20 text-base text-foreground shadow-sm outline-none transition placeholder:text-muted-foreground focus:border-ring focus:ring-4 focus:ring-ring/15"
+              className="w-full rounded-2xl border border-primary/25 bg-card py-4 pl-12 pr-20 text-base text-foreground shadow-sm outline-none transition placeholder:text-muted-foreground focus:border-primary focus:ring-4 focus:ring-primary/20"
               aria-label="Rechercher une typologie"
             />
-            <kbd className="pointer-events-none absolute right-4 top-1/2 hidden -translate-y-1/2 select-none rounded-md border border-border bg-muted px-2 py-1 text-[10px] font-medium text-muted-foreground sm:inline-block">
+            <kbd className="pointer-events-none absolute right-4 top-1/2 hidden -translate-y-1/2 select-none rounded-md border border-primary/20 bg-primary/10 px-2 py-1 text-[10px] font-medium text-primary sm:inline-block">
               {results.length} résultat{results.length > 1 ? "s" : ""}
             </kbd>
           </div>
         </div>
 
         <div className="mt-4 flex items-center gap-2">
-          {(["all", "pass", "fail"] as const).map((k) => (
-            <button
-              key={k}
-              type="button"
-              onClick={() => setKindFilter(k)}
-              className={`rounded-full border px-3 py-1 text-xs font-medium transition ${
-                kindFilter === k
-                  ? "border-foreground bg-foreground text-background"
-                  : "border-border bg-card text-muted-foreground hover:text-foreground"
-              }`}
-            >
-              {k === "all" ? "Tout" : k === "pass" ? "Pass" : "Fail"}
-            </button>
-          ))}
+          {(["all", "pass", "fail"] as const).map((k) => {
+            const active = kindFilter === k;
+            const activeClass =
+              k === "pass"
+                ? "border-success bg-success text-success-foreground"
+                : k === "fail"
+                  ? "border-destructive bg-destructive text-destructive-foreground"
+                  : "border-primary bg-primary text-primary-foreground";
+            return (
+              <button
+                key={k}
+                type="button"
+                onClick={() => setKindFilter(k)}
+                className={`rounded-full border px-3 py-1 text-xs font-medium transition ${
+                  active
+                    ? activeClass
+                    : "border-border bg-card text-muted-foreground hover:border-primary/40 hover:text-primary"
+                }`}
+              >
+                {k === "all" ? "Tout" : k === "pass" ? "Pass" : "Fail"}
+              </button>
+            );
+          })}
         </div>
+
 
         <ul className="mt-6 space-y-3">
           {results.map(({ typology, descriptions }) => (
             <li
               key={typology.id}
-              className="group rounded-2xl border border-border bg-card p-5 shadow-sm transition hover:border-ring/40"
+              className="group rounded-2xl border border-border bg-card p-5 shadow-sm transition hover:border-primary/50 hover:shadow-md"
             >
               <div className="flex items-start justify-between gap-4">
                 <div className="flex min-w-0 items-center gap-2">
+                  <span className="h-6 w-1.5 shrink-0 rounded-full bg-gradient-to-b from-primary to-info" aria-hidden />
                   <h2 className="truncate text-base font-semibold text-foreground">
                     {typology.title}
                   </h2>
-                  <span className="rounded-full border border-emerald-500/30 bg-emerald-500/10 px-2 py-0.5 text-[10px] font-medium uppercase tracking-wider text-emerald-600">
+                  <span className="rounded-full border border-success/30 bg-success/10 px-2 py-0.5 text-[10px] font-medium uppercase tracking-wider text-success">
                     {typology.descriptions.filter((d) => d.kind === "pass").length} pass
                   </span>
                   <span className="rounded-full border border-destructive/30 bg-destructive/10 px-2 py-0.5 text-[10px] font-medium uppercase tracking-wider text-destructive">
                     {typology.descriptions.filter((d) => d.kind === "fail").length} fail
                   </span>
                 </div>
+
                 <div className="flex shrink-0 items-center gap-1">
                   <button
                     type="button"
                     onClick={() => setEditor({ mode: "edit", typology })}
-                    className="inline-flex h-8 w-8 items-center justify-center rounded-lg border border-transparent text-muted-foreground transition hover:border-border hover:bg-muted hover:text-foreground"
+                    className="inline-flex h-8 w-8 items-center justify-center rounded-lg border border-transparent text-muted-foreground transition hover:border-primary/40 hover:bg-primary/10 hover:text-primary"
+
                     aria-label={`Modifier ${typology.title}`}
                   >
                     <Pencil className="h-4 w-4" />
@@ -231,14 +245,18 @@ function AppPage() {
                   return (
                     <li
                       key={d.id}
-                      className="flex items-start justify-between gap-3 rounded-xl border border-border/60 bg-background/60 p-3"
+                      className={`flex items-start justify-between gap-3 rounded-xl border p-3 transition ${
+                        d.kind === "pass"
+                          ? "border-success/25 bg-success/5"
+                          : "border-destructive/25 bg-destructive/5"
+                      }`}
                     >
                       <div className="min-w-0">
                         <span
                           className={`mb-1.5 inline-block rounded-md border px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wider ${
                             d.kind === "pass"
-                              ? "border-emerald-500/30 bg-emerald-500/10 text-emerald-600"
-                              : "border-destructive/30 bg-destructive/10 text-destructive"
+                              ? "border-success/30 bg-success/15 text-success"
+                              : "border-destructive/30 bg-destructive/15 text-destructive"
                           }`}
                         >
                           {d.kind}
@@ -253,10 +271,11 @@ function AppPage() {
                         aria-label="Copier la description"
                         className={`inline-flex shrink-0 items-center gap-1.5 rounded-lg border px-2.5 py-1.5 text-xs font-medium transition ${
                           copied
-                            ? "border-foreground bg-foreground text-background"
-                            : "border-border bg-background text-foreground hover:border-foreground/40 hover:bg-muted"
+                            ? "border-success bg-success text-success-foreground"
+                            : "border-primary/30 bg-card text-primary hover:bg-primary hover:text-primary-foreground"
                         }`}
                       >
+
                         {copied ? (
                           <>
                             <Check className="h-3.5 w-3.5" /> Copié
@@ -424,9 +443,12 @@ function TypologyEditor({
                         }
                         className={`rounded-md border px-2 py-1 text-[10px] font-semibold uppercase transition ${
                           d.kind === k
-                            ? "border-foreground bg-foreground text-background"
+                            ? k === "pass"
+                              ? "border-success bg-success text-success-foreground"
+                              : "border-destructive bg-destructive text-destructive-foreground"
                             : "border-border text-muted-foreground hover:text-foreground"
                         }`}
+
                       >
                         {k}
                       </button>

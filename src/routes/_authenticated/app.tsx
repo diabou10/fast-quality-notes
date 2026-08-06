@@ -222,7 +222,8 @@ function AppPage() {
                   <button
                     type="button"
                     onClick={() => setEditor({ mode: "edit", typology })}
-                    className="inline-flex h-8 w-8 items-center justify-center rounded-lg border border-transparent text-muted-foreground transition hover:border-border hover:bg-muted hover:text-foreground"
+                    className="inline-flex h-8 w-8 items-center justify-center rounded-lg border border-transparent text-muted-foreground transition hover:border-primary/40 hover:bg-primary/10 hover:text-primary"
+
                     aria-label={`Modifier ${typology.title}`}
                   >
                     <Pencil className="h-4 w-4" />

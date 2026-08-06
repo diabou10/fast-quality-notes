@@ -115,16 +115,17 @@ function AppPage() {
   };
 
   return (
-    <div className="min-h-screen bg-background">
+    <div className="min-h-screen bg-gradient-to-b from-accent/40 via-background to-background">
       <div className="mx-auto max-w-4xl px-6 py-10">
         <header className="mb-8 flex items-start justify-between gap-4">
           <div>
-            <p className="text-xs font-medium uppercase tracking-widest text-muted-foreground">
+            <p className="text-xs font-medium uppercase tracking-widest text-primary">
               Quality Evaluation
             </p>
-            <h1 className="mt-2 text-3xl font-semibold tracking-tight text-foreground">
+            <h1 className="mt-2 bg-gradient-to-r from-primary to-info bg-clip-text text-3xl font-semibold tracking-tight text-transparent">
               Typologies
             </h1>
+
             <p className="mt-1 text-sm text-muted-foreground">
               {email ? `Base privée de ${email}` : "Recherche, édite et copie en un clic."}
             </p>

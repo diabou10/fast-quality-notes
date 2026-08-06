@@ -443,9 +443,12 @@ function TypologyEditor({
                         }
                         className={`rounded-md border px-2 py-1 text-[10px] font-semibold uppercase transition ${
                           d.kind === k
-                            ? "border-foreground bg-foreground text-background"
+                            ? k === "pass"
+                              ? "border-success bg-success text-success-foreground"
+                              : "border-destructive bg-destructive text-destructive-foreground"
                             : "border-border text-muted-foreground hover:text-foreground"
                         }`}
+
                       >
                         {k}
                       </button>

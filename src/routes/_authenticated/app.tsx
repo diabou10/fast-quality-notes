@@ -245,14 +245,18 @@ function AppPage() {
                   return (
                     <li
                       key={d.id}
-                      className="flex items-start justify-between gap-3 rounded-xl border border-border/60 bg-background/60 p-3"
+                      className={`flex items-start justify-between gap-3 rounded-xl border p-3 transition ${
+                        d.kind === "pass"
+                          ? "border-success/25 bg-success/5"
+                          : "border-destructive/25 bg-destructive/5"
+                      }`}
                     >
                       <div className="min-w-0">
                         <span
                           className={`mb-1.5 inline-block rounded-md border px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wider ${
                             d.kind === "pass"
-                              ? "border-emerald-500/30 bg-emerald-500/10 text-emerald-600"
-                              : "border-destructive/30 bg-destructive/10 text-destructive"
+                              ? "border-success/30 bg-success/15 text-success"
+                              : "border-destructive/30 bg-destructive/15 text-destructive"
                           }`}
                         >
                           {d.kind}
@@ -267,10 +271,11 @@ function AppPage() {
                         aria-label="Copier la description"
                         className={`inline-flex shrink-0 items-center gap-1.5 rounded-lg border px-2.5 py-1.5 text-xs font-medium transition ${
                           copied
-                            ? "border-foreground bg-foreground text-background"
-                            : "border-border bg-background text-foreground hover:border-foreground/40 hover:bg-muted"
+                            ? "border-success bg-success text-success-foreground"
+                            : "border-primary/30 bg-card text-primary hover:bg-primary hover:text-primary-foreground"
                         }`}
                       >
+
                         {copied ? (
                           <>
                             <Check className="h-3.5 w-3.5" /> Copié

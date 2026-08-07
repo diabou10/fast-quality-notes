@@ -242,50 +242,101 @@ function AppPage() {
               <ul className="mt-3 space-y-2">
                 {descriptions.map((d) => {
                   const copied = copiedId === d.id;
+                  const refs = findTrainingRefs(typology.title, d.text);
+                  const justification = refs
+                    .map((r) => `${r.title} (${r.page}) : ${r.excerpt}`)
+                    .join("\n\n");
+                  const copiedWithRef = copiedId === `${d.id}-ref`;
                   return (
                     <li
                       key={d.id}
-                      className={`flex items-start justify-between gap-3 rounded-xl border p-3 transition ${
+                      className={`rounded-xl border p-3 transition ${
                         d.kind === "pass"
                           ? "border-success/25 bg-success/5"
                           : "border-destructive/25 bg-destructive/5"
                       }`}
                     >
-                      <div className="min-w-0">
-                        <span
-                          className={`mb-1.5 inline-block rounded-md border px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wider ${
-                            d.kind === "pass"
-                              ? "border-success/30 bg-success/15 text-success"
-                              : "border-destructive/30 bg-destructive/15 text-destructive"
+                      <div className="flex items-start justify-between gap-3">
+                        <div className="min-w-0">
+                          <span
+                            className={`mb-1.5 inline-block rounded-md border px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wider ${
+                              d.kind === "pass"
+                                ? "border-success/30 bg-success/15 text-success"
+                                : "border-destructive/30 bg-destructive/15 text-destructive"
+                            }`}
+                          >
+                            {d.kind}
+                          </span>
+                          <p className="text-sm leading-relaxed text-foreground/90">
+                            {d.text}
+                          </p>
+                        </div>
+                        <button
+                          type="button"
+                          onClick={() => handleCopy(d.id, d.text)}
+                          aria-label="Copier la description"
+                          className={`inline-flex shrink-0 items-center gap-1.5 rounded-lg border px-2.5 py-1.5 text-xs font-medium transition ${
+                            copied
+                              ? "border-success bg-success text-success-foreground"
+                              : "border-primary/30 bg-card text-primary hover:bg-primary hover:text-primary-foreground"
                           }`}
                         >
-                          {d.kind}
-                        </span>
-                        <p className="text-sm leading-relaxed text-foreground/90">
-                          {d.text}
-                        </p>
+                          {copied ? (
+                            <>
+                              <Check className="h-3.5 w-3.5" /> Copié
+                            </>
+                          ) : (
+                            <>
+                              <Copy className="h-3.5 w-3.5" /> Copier
+                            </>
+                          )}
+                        </button>
                       </div>
-                      <button
-                        type="button"
-                        onClick={() => handleCopy(d.id, d.text)}
-                        aria-label="Copier la description"
-                        className={`inline-flex shrink-0 items-center gap-1.5 rounded-lg border px-2.5 py-1.5 text-xs font-medium transition ${
-                          copied
-                            ? "border-success bg-success text-success-foreground"
-                            : "border-primary/30 bg-card text-primary hover:bg-primary hover:text-primary-foreground"
-                        }`}
-                      >
 
-                        {copied ? (
-                          <>
-                            <Check className="h-3.5 w-3.5" /> Copié
-                          </>
-                        ) : (
-                          <>
-                            <Copy className="h-3.5 w-3.5" /> Copier
-                          </>
-                        )}
-                      </button>
+                      {refs.length > 0 && (
+                        <div className="mt-3 rounded-lg border border-info/30 bg-info/5 p-2.5">
+                          <div className="flex items-center justify-between gap-2">
+                            <span className="inline-flex items-center gap-1.5 text-[11px] font-semibold uppercase tracking-wider text-info">
+                              <BookOpen className="h-3.5 w-3.5" /> Justification — Training Book
+                            </span>
+                            <button
+                              type="button"
+                              onClick={() =>
+                                handleCopy(
+                                  `${d.id}-ref`,
+                                  `${d.text}\n\nRéférence Training Book :\n${justification}`,
+                                )
+                              }
+                              className={`inline-flex shrink-0 items-center gap-1.5 rounded-md border px-2 py-1 text-[11px] font-medium transition ${
+                                copiedWithRef
+                                  ? "border-success bg-success text-success-foreground"
+                                  : "border-info/40 bg-card text-info hover:bg-info hover:text-info-foreground"
+                              }`}
+                            >
+                              {copiedWithRef ? (
+                                <>
+                                  <Check className="h-3 w-3" /> Copié
+                                </>
+                              ) : (
+                                <>
+                                  <Copy className="h-3 w-3" /> Copier avec justification
+                                </>
+                              )}
+                            </button>
+                          </div>
+                          <ul className="mt-2 space-y-2">
+                            {refs.map((r) => (
+                              <li key={r.id} className="text-xs leading-relaxed">
+                                <span className="font-semibold text-foreground">
+                                  {r.title}
+                                </span>{" "}
+                                <span className="text-muted-foreground">({r.page})</span>
+                                <p className="mt-0.5 text-muted-foreground">{r.excerpt}</p>
+                              </li>
+                            ))}
+                          </ul>
+                        </div>
+                      )}
                     </li>
                   );
                 })}

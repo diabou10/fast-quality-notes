@@ -1,7 +1,19 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useQueryClient } from "@tanstack/react-query";
 import { useEffect, useMemo, useState } from "react";
-import { Check, Copy, Loader2, LogOut, Pencil, Plus, Search, Trash2, X } from "lucide-react";
+import {
+  BookOpen,
+  Check,
+  Copy,
+  Loader2,
+  LogOut,
+  Pencil,
+  Plus,
+  Search,
+  Trash2,
+  X,
+} from "lucide-react";
+import { findTrainingRefs } from "@/data/training-book";
 import {
   useTypologies,
   type Typology,

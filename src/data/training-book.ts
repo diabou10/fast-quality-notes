@@ -269,13 +269,13 @@ export function findTrainingRefs(
   return scored.slice(0, limit).map((s) => s.section);
 }
 
-import trainingBookAsset from "@/assets/training-book.pdf.asset.json";
+/** URL du training book (Google Slides). */
+export const TRAINING_BOOK_URL =
+  "https://docs.google.com/presentation/d/1g5_3Pxja05V14OmIDuRsqTc-mhlbeb_5RsuLA-jek84/edit";
 
-/** URL du PDF du training book (asset hébergé). */
-export const TRAINING_BOOK_URL: string = trainingBookAsset.url;
-
-/** Lien direct vers la page concernée du training book. */
+/** Lien vers le training book, positionné sur la diapositive correspondante. */
 export function trainingRefUrl(section: TrainingSection): string {
   const match = section.page.match(/\d+/);
-  return match ? `${TRAINING_BOOK_URL}#page=${match[0]}` : TRAINING_BOOK_URL;
+  return match ? `${TRAINING_BOOK_URL}#slide=id.p${match[0]}` : TRAINING_BOOK_URL;
 }
+

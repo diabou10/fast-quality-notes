@@ -268,3 +268,14 @@ export function findTrainingRefs(
 
   return scored.slice(0, limit).map((s) => s.section);
 }
+
+import trainingBookAsset from "@/assets/training-book.pdf.asset.json";
+
+/** URL du PDF du training book (asset hébergé). */
+export const TRAINING_BOOK_URL: string = trainingBookAsset.url;
+
+/** Lien direct vers la page concernée du training book. */
+export function trainingRefUrl(section: TrainingSection): string {
+  const match = section.page.match(/\d+/);
+  return match ? `${TRAINING_BOOK_URL}#page=${match[0]}` : TRAINING_BOOK_URL;
+}

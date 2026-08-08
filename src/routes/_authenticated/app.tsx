@@ -5,6 +5,7 @@ import {
   BookOpen,
   Check,
   Copy,
+  ExternalLink,
   Loader2,
   LogOut,
   Pencil,
@@ -13,7 +14,7 @@ import {
   Trash2,
   X,
 } from "lucide-react";
-import { findTrainingRefs } from "@/data/training-book";
+import { findTrainingRefs, trainingRefUrl } from "@/data/training-book";
 import {
   useTypologies,
   type Typology,
@@ -342,7 +343,15 @@ function AppPage() {
                                 <span className="font-semibold text-foreground">
                                   {r.title}
                                 </span>{" "}
-                                <span className="text-muted-foreground">({r.page})</span>
+                                <span className="text-muted-foreground">({r.page})</span>{" "}
+                                <a
+                                  href={trainingRefUrl(r)}
+                                  target="_blank"
+                                  rel="noopener noreferrer"
+                                  className="inline-flex items-center gap-1 rounded-md border border-info/40 bg-card px-1.5 py-0.5 align-middle text-[10px] font-medium text-info transition hover:bg-info hover:text-info-foreground"
+                                >
+                                  <ExternalLink className="h-3 w-3" /> Voir dans le training book
+                                </a>
                                 <p className="mt-0.5 text-muted-foreground">{r.excerpt}</p>
                               </li>
                             ))}

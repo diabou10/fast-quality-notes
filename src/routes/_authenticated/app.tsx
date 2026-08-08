@@ -255,7 +255,8 @@ function AppPage() {
               <ul className="mt-3 space-y-2">
                 {descriptions.map((d) => {
                   const copied = copiedId === d.id;
-                  const refs = findTrainingRefs(typology.title, d.text);
+                  const refs =
+                    d.kind === "fail" ? findTrainingRefs(typology.title, d.text) : [];
                   const justification = refs
                     .map((r) => `${r.title} (${r.page}) : ${r.excerpt}`)
                     .join("\n\n");

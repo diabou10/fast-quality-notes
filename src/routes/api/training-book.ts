@@ -7,13 +7,21 @@ export const Route = createFileRoute("/api/training-book")({
       GET: async ({ request }) => {
         const sourceUrl = new URL(TRAINING_BOOK_URL, request.url);
         const range = request.headers.get("range");
-        const upstream = await fetch(sourceUrl, {
-          headers: range ? { range } : undefined,
-        });
+
+        let upstream: Response;
+        try {
+          upstream = await fetch(sourceUrl, {
+            headers: range ? { range } : undefined,
+          });
+        } catch {
+          // Self-fetch can fail (TLS/loopback); let the browser load the asset directly.
+          return Response.redirect(sourceUrl.toString(), 302);
+        }
 
         if (!upstream.ok && upstream.status !== 206) {
-          return new Response("Training Book indisponible", { status: 502 });
+          return Response.redirect(sourceUrl.toString(), 302);
         }
+
 
         const headers = new Headers();
         headers.set("content-type", "application/pdf");

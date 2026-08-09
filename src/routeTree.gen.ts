@@ -12,6 +12,7 @@ import { Route as rootRouteImport } from './routes/__root'
 import { Route as AuthRouteImport } from './routes/auth'
 import { Route as AuthenticatedRouteRouteImport } from './routes/_authenticated/route'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as ApiTrainingBookRouteImport } from './routes/api/training-book'
 import { Route as AuthenticatedTrainingBookRouteImport } from './routes/_authenticated/training-book'
 import { Route as AuthenticatedAppRouteImport } from './routes/_authenticated/app'
 
@@ -27,6 +28,11 @@ const AuthenticatedRouteRoute = AuthenticatedRouteRouteImport.update({
 const IndexRoute = IndexRouteImport.update({
   id: '/',
   path: '/',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiTrainingBookRoute = ApiTrainingBookRouteImport.update({
+  id: '/api/training-book',
+  path: '/api/training-book',
   getParentRoute: () => rootRouteImport,
 } as any)
 const AuthenticatedTrainingBookRoute =
@@ -46,12 +52,14 @@ export interface FileRoutesByFullPath {
   '/auth': typeof AuthRoute
   '/app': typeof AuthenticatedAppRoute
   '/training-book': typeof AuthenticatedTrainingBookRoute
+  '/api/training-book': typeof ApiTrainingBookRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/auth': typeof AuthRoute
   '/app': typeof AuthenticatedAppRoute
   '/training-book': typeof AuthenticatedTrainingBookRoute
+  '/api/training-book': typeof ApiTrainingBookRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -60,12 +68,13 @@ export interface FileRoutesById {
   '/auth': typeof AuthRoute
   '/_authenticated/app': typeof AuthenticatedAppRoute
   '/_authenticated/training-book': typeof AuthenticatedTrainingBookRoute
+  '/api/training-book': typeof ApiTrainingBookRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/' | '/auth' | '/app' | '/training-book'
+  fullPaths: '/' | '/auth' | '/app' | '/training-book' | '/api/training-book'
   fileRoutesByTo: FileRoutesByTo
-  to: '/' | '/auth' | '/app' | '/training-book'
+  to: '/' | '/auth' | '/app' | '/training-book' | '/api/training-book'
   id:
     | '__root__'
     | '/'
@@ -73,12 +82,14 @@ export interface FileRouteTypes {
     | '/auth'
     | '/_authenticated/app'
     | '/_authenticated/training-book'
+    | '/api/training-book'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   AuthenticatedRouteRoute: typeof AuthenticatedRouteRouteWithChildren
   AuthRoute: typeof AuthRoute
+  ApiTrainingBookRoute: typeof ApiTrainingBookRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -102,6 +113,13 @@ declare module '@tanstack/react-router' {
       path: '/'
       fullPath: '/'
       preLoaderRoute: typeof IndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/training-book': {
+      id: '/api/training-book'
+      path: '/api/training-book'
+      fullPath: '/api/training-book'
+      preLoaderRoute: typeof ApiTrainingBookRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/_authenticated/training-book': {
@@ -138,6 +156,7 @@ const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   AuthenticatedRouteRoute: AuthenticatedRouteRouteWithChildren,
   AuthRoute: AuthRoute,
+  ApiTrainingBookRoute: ApiTrainingBookRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)

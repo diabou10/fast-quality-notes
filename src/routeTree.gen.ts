@@ -13,7 +13,6 @@ import { Route as AuthRouteImport } from './routes/auth'
 import { Route as AuthenticatedRouteRouteImport } from './routes/_authenticated/route'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as ApiTrainingBookRouteImport } from './routes/api/training-book'
-import { Route as AuthenticatedTrainingBookRouteImport } from './routes/_authenticated/training-book'
 import { Route as AuthenticatedAppRouteImport } from './routes/_authenticated/app'
 
 const AuthRoute = AuthRouteImport.update({
@@ -35,12 +34,6 @@ const ApiTrainingBookRoute = ApiTrainingBookRouteImport.update({
   path: '/api/training-book',
   getParentRoute: () => rootRouteImport,
 } as any)
-const AuthenticatedTrainingBookRoute =
-  AuthenticatedTrainingBookRouteImport.update({
-    id: '/training-book',
-    path: '/training-book',
-    getParentRoute: () => AuthenticatedRouteRoute,
-  } as any)
 const AuthenticatedAppRoute = AuthenticatedAppRouteImport.update({
   id: '/app',
   path: '/app',
@@ -51,14 +44,12 @@ export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/auth': typeof AuthRoute
   '/app': typeof AuthenticatedAppRoute
-  '/training-book': typeof AuthenticatedTrainingBookRoute
   '/api/training-book': typeof ApiTrainingBookRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/auth': typeof AuthRoute
   '/app': typeof AuthenticatedAppRoute
-  '/training-book': typeof AuthenticatedTrainingBookRoute
   '/api/training-book': typeof ApiTrainingBookRoute
 }
 export interface FileRoutesById {
@@ -67,21 +58,19 @@ export interface FileRoutesById {
   '/_authenticated': typeof AuthenticatedRouteRouteWithChildren
   '/auth': typeof AuthRoute
   '/_authenticated/app': typeof AuthenticatedAppRoute
-  '/_authenticated/training-book': typeof AuthenticatedTrainingBookRoute
   '/api/training-book': typeof ApiTrainingBookRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/' | '/auth' | '/app' | '/training-book' | '/api/training-book'
+  fullPaths: '/' | '/auth' | '/app' | '/api/training-book'
   fileRoutesByTo: FileRoutesByTo
-  to: '/' | '/auth' | '/app' | '/training-book' | '/api/training-book'
+  to: '/' | '/auth' | '/app' | '/api/training-book'
   id:
     | '__root__'
     | '/'
     | '/_authenticated'
     | '/auth'
     | '/_authenticated/app'
-    | '/_authenticated/training-book'
     | '/api/training-book'
   fileRoutesById: FileRoutesById
 }
@@ -122,13 +111,6 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiTrainingBookRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/_authenticated/training-book': {
-      id: '/_authenticated/training-book'
-      path: '/training-book'
-      fullPath: '/training-book'
-      preLoaderRoute: typeof AuthenticatedTrainingBookRouteImport
-      parentRoute: typeof AuthenticatedRouteRoute
-    }
     '/_authenticated/app': {
       id: '/_authenticated/app'
       path: '/app'
@@ -141,12 +123,10 @@ declare module '@tanstack/react-router' {
 
 interface AuthenticatedRouteRouteChildren {
   AuthenticatedAppRoute: typeof AuthenticatedAppRoute
-  AuthenticatedTrainingBookRoute: typeof AuthenticatedTrainingBookRoute
 }
 
 const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedAppRoute: AuthenticatedAppRoute,
-  AuthenticatedTrainingBookRoute: AuthenticatedTrainingBookRoute,
 }
 
 const AuthenticatedRouteRouteWithChildren =

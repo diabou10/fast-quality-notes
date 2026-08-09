@@ -276,6 +276,6 @@ export const TRAINING_BOOK_URL =
 /** Lien vers le training book, positionné sur la page du process concerné. */
 export function trainingRefUrl(section: TrainingSection): string {
   const match = section.page.match(/\d+/);
-  return `/training-book?page=${match?.[0] ?? "1"}`;
+  return `/api/training-book#page=${match?.[0] ?? "1"}&zoom=page-fit`;
 }
 

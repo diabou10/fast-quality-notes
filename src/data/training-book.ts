@@ -269,13 +269,15 @@ export function findTrainingRefs(
   return scored.slice(0, limit).map((s) => s.section);
 }
 
-/** URL du training book (Google Slides). */
+/** Training book (PDF hébergé avec l'app) — ouvrable à une page précise. */
 export const TRAINING_BOOK_URL =
-  "https://docs.google.com/presentation/d/1g5_3Pxja05V14OmIDuRsqTc-mhlbeb_5RsuLA-jek84/edit";
+  "/__l5e/assets-v1/79c5e631-70e3-4f4f-b76d-079368bd70cf/training-book.pdf";
 
-/** Lien vers le training book, positionné sur la diapositive correspondante. */
+/** Lien vers le training book, positionné sur la page du process concerné. */
 export function trainingRefUrl(section: TrainingSection): string {
   const match = section.page.match(/\d+/);
-  return match ? `${TRAINING_BOOK_URL}#slide=id.p${match[0]}` : TRAINING_BOOK_URL;
+  return match
+    ? `${TRAINING_BOOK_URL}#page=${match[0]}&zoom=page-fit`
+    : TRAINING_BOOK_URL;
 }
 

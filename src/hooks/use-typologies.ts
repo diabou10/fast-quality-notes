@@ -5,9 +5,11 @@ import {
   bootstrapTypologies,
   createTypology,
   deleteTypology as deleteTypologyFn,
+  importTypologies as importTypologiesFn,
   listTypologies,
   updateTypology as updateTypologyFn,
 } from "@/lib/typologies.functions";
+
 
 export type DescriptionKind = "pass" | "fail";
 
@@ -52,7 +54,9 @@ export function useTypologies() {
   const create = useServerFn(createTypology);
   const update = useServerFn(updateTypologyFn);
   const remove = useServerFn(deleteTypologyFn);
+  const importFn = useServerFn(importTypologiesFn);
   const bootstrapped = useRef(false);
+
 
   const query = useQuery({
     queryKey: ["typologies"],
@@ -87,6 +91,16 @@ export function useTypologies() {
   const createMutation = useMutation({ mutationFn: create, onSuccess: invalidate });
   const updateMutation = useMutation({ mutationFn: update, onSuccess: invalidate });
   const deleteMutation = useMutation({ mutationFn: remove, onSuccess: invalidate });
+  const importMutation = useMutation({ mutationFn: importFn, onSuccess: invalidate });
+
+  const importRows = useCallback(
+    (
+      rows: { title: string; kind: DescriptionKind; text: string }[],
+      mode: "merge" | "replace" = "merge",
+    ) => importMutation.mutateAsync({ data: { rows, mode } }),
+    [importMutation],
+  );
+
 
   const addTypology = useCallback(
     (title: string, descriptions: { kind: DescriptionKind; text: string }[]) => {
@@ -121,9 +135,15 @@ export function useTypologies() {
     typologies: query.data ?? [],
     loading: query.isPending,
     saving:
-      createMutation.isPending || updateMutation.isPending || deleteMutation.isPending,
+      createMutation.isPending ||
+      updateMutation.isPending ||
+      deleteMutation.isPending ||
+      importMutation.isPending,
     addTypology,
     updateTypology,
     deleteTypology,
+    importRows,
+    importing: importMutation.isPending,
+
   };
 }

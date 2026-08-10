@@ -182,3 +182,93 @@ export const deleteTypology = createServerFn({ method: "POST" })
     if (error) throw new Error(error.message);
     return { ok: true };
   });
+
+/** Bulk import from a spreadsheet: merges into existing typologies by title. */
+export const importTypologies = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((input: unknown) =>
+    z
+      .object({
+        rows: z
+          .array(
+            z.object({
+              title: z.string().trim().min(1),
+              kind: kindSchema,
+              text: z.string().trim().min(1),
+            }),
+          )
+          .min(1)
+          .max(2000),
+        mode: z.enum(["merge", "replace"]).default("merge"),
+      })
+      .parse(input),
+  )
+  .handler(async ({ data, context }) => {
+    const { supabase, userId } = context;
+
+    const grouped = new Map<string, { kind: "pass" | "fail"; text: string }[]>();
+    for (const r of data.rows) {
+      const list = grouped.get(r.title) ?? [];
+      list.push({ kind: r.kind, text: r.text });
+      grouped.set(r.title, list);
+    }
+
+    if (data.mode === "replace") {
+      const { error } = await supabase.from("typologies").delete().eq("user_id", userId);
+      if (error) throw new Error(error.message);
+    }
+
+    const { data: existing, error: listError } = await supabase
+      .from("typologies")
+      .select("id, title")
+      .eq("user_id", userId);
+    if (listError) throw new Error(listError.message);
+
+    const byTitle = new Map(
+      (existing ?? []).map((t) => [t.title.trim().toLowerCase(), t.id]),
+    );
+
+    let created = 0;
+    let added = 0;
+
+    for (const [title, descs] of grouped) {
+      let typologyId = byTitle.get(title.toLowerCase());
+
+      if (!typologyId) {
+        const { data: row, error } = await supabase
+          .from("typologies")
+          .insert({
+            user_id: userId,
+            title,
+            position: Math.round(-Date.now() / 1000),
+          })
+          .select("id")
+          .single();
+        if (error) throw new Error(error.message);
+        typologyId = row.id;
+        byTitle.set(title.toLowerCase(), row.id);
+        created += 1;
+      }
+
+      const { count } = await supabase
+        .from("descriptions")
+        .select("id", { count: "exact", head: true })
+        .eq("typology_id", typologyId)
+        .eq("user_id", userId);
+
+      const start = count ?? 0;
+      const { error: insError } = await supabase.from("descriptions").insert(
+        descs.map((d, i) => ({
+          typology_id: typologyId!,
+          user_id: userId,
+          kind: d.kind,
+          text: d.text,
+          position: start + i,
+        })),
+      );
+      if (insError) throw new Error(insError.message);
+      added += descs.length;
+    }
+
+    return { created, added, typologies: grouped.size };
+  });

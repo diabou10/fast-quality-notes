@@ -434,9 +434,198 @@ function AppPage() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      <ImportDialog
+        open={importOpen}
+        onClose={() => setImportOpen(false)}
+        onImport={importRows}
+      />
     </div>
   );
 }
+
+function ImportDialog({
+  open,
+  onClose,
+  onImport,
+}: {
+  open: boolean;
+  onClose: () => void;
+  onImport: (
+    rows: ImportRow[],
+    mode: "merge" | "replace",
+  ) => Promise<{ created: number; added: number; typologies: number }>;
+}) {
+  const [rows, setRows] = useState<ImportRow[]>([]);
+  const [fileName, setFileName] = useState("");
+  const [skipped, setSkipped] = useState(0);
+  const [mode, setMode] = useState<"merge" | "replace">("merge");
+  const [error, setError] = useState<string | null>(null);
+  const [busy, setBusy] = useState(false);
+
+  const reset = () => {
+    setRows([]);
+    setFileName("");
+    setSkipped(0);
+    setMode("merge");
+    setError(null);
+    setBusy(false);
+  };
+
+  const handleFile = async (file: File | undefined) => {
+    if (!file) return;
+    setError(null);
+    setFileName(file.name);
+    try {
+      const res = await parseTypologiesFile(file);
+      setRows(res.rows);
+      setSkipped(res.skipped);
+      if (res.rows.length === 0)
+        setError(
+          "Aucune ligne valide trouvée. Vérifie les colonnes Typologie, Statut et Description.",
+        );
+    } catch {
+      setRows([]);
+      setError("Fichier illisible. Utilise le modèle Excel (.xlsx ou .csv).");
+    }
+  };
+
+  const handleImport = async () => {
+    setBusy(true);
+    try {
+      await onImport(rows, mode);
+      reset();
+      onClose();
+    } catch {
+      setError("L'import a échoué. Réessaie.");
+      setBusy(false);
+    }
+  };
+
+  return (
+    <Dialog
+      open={open}
+      onOpenChange={(o) => {
+        if (!o) {
+          reset();
+          onClose();
+        }
+      }}
+    >
+      <DialogContent className="max-w-xl">
+        <DialogHeader>
+          <DialogTitle>Importer des typologies depuis Excel</DialogTitle>
+        </DialogHeader>
+
+        <div className="space-y-4">
+          <div className="rounded-lg border border-border bg-muted/40 p-4 text-sm">
+            <p className="text-muted-foreground">
+              Ton fichier doit contenir 3 colonnes&nbsp;:{" "}
+              <strong className="text-foreground">Typologie</strong>,{" "}
+              <strong className="text-foreground">Statut</strong> (Pass ou Fail) et{" "}
+              <strong className="text-foreground">Description</strong>.
+            </p>
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              className="mt-3"
+              onClick={() => downloadTypologiesTemplate()}
+            >
+              <Download className="mr-1.5 h-4 w-4" /> Télécharger le modèle
+            </Button>
+          </div>
+
+          <div>
+            <label
+              htmlFor="import-file"
+              className="text-sm font-medium text-foreground"
+            >
+              Fichier (.xlsx, .xls, .csv)
+            </label>
+            <Input
+              id="import-file"
+              type="file"
+              accept=".xlsx,.xls,.csv"
+              className="mt-1.5"
+              onChange={(e) => void handleFile(e.target.files?.[0])}
+            />
+          </div>
+
+          {rows.length > 0 && (
+            <div className="space-y-3">
+              <p className="text-sm text-foreground">
+                <strong>{rows.length}</strong> description(s) prête(s) à importer sur{" "}
+                <strong>{new Set(rows.map((r) => r.title)).size}</strong> typologie(s)
+                {skipped > 0 && (
+                  <span className="text-muted-foreground">
+                    {" "}
+                    — {skipped} ligne(s) ignorée(s)
+                  </span>
+                )}
+                .
+              </p>
+              <div className="max-h-40 space-y-1.5 overflow-y-auto rounded-lg border border-border p-3 text-xs">
+                {rows.slice(0, 20).map((r, i) => (
+                  <div key={i} className="flex gap-2">
+                    <span
+                      className={
+                        r.kind === "pass"
+                          ? "shrink-0 font-medium text-success"
+                          : "shrink-0 font-medium text-destructive"
+                      }
+                    >
+                      {r.kind === "pass" ? "Pass" : "Fail"}
+                    </span>
+                    <span className="shrink-0 font-medium">{r.title}</span>
+                    <span className="truncate text-muted-foreground">{r.text}</span>
+                  </div>
+                ))}
+              </div>
+              <div className="flex gap-2">
+                {(["merge", "replace"] as const).map((m) => (
+                  <button
+                    key={m}
+                    type="button"
+                    onClick={() => setMode(m)}
+                    className={`rounded-lg border px-3 py-1.5 text-xs font-medium transition ${
+                      mode === m
+                        ? "border-primary bg-primary/10 text-primary"
+                        : "border-border text-muted-foreground hover:bg-muted"
+                    }`}
+                  >
+                    {m === "merge"
+                      ? "Ajouter à ma base"
+                      : "Remplacer toute ma base"}
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {error && <p className="text-sm text-destructive">{error}</p>}
+          {fileName && !error && rows.length === 0 && (
+            <p className="text-sm text-muted-foreground">Analyse de {fileName}…</p>
+          )}
+        </div>
+
+        <DialogFooter>
+          <Button variant="ghost" onClick={onClose}>
+            Annuler
+          </Button>
+          <Button
+            onClick={() => void handleImport()}
+            disabled={rows.length === 0 || busy}
+          >
+            {busy && <Loader2 className="mr-1.5 h-4 w-4 animate-spin" />}
+            Importer {rows.length > 0 ? `(${rows.length})` : ""}
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
 
 type DraftDesc = { id?: string; kind: DescriptionKind; text: string };
 

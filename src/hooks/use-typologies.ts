@@ -5,9 +5,11 @@ import {
   bootstrapTypologies,
   createTypology,
   deleteTypology as deleteTypologyFn,
+  importTypologies as importTypologiesFn,
   listTypologies,
   updateTypology as updateTypologyFn,
 } from "@/lib/typologies.functions";
+
 
 export type DescriptionKind = "pass" | "fail";
 

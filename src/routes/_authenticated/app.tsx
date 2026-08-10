@@ -165,9 +165,13 @@ function AppPage() {
                 <Loader2 className="h-3.5 w-3.5 animate-spin" /> Enregistrement…
               </span>
             )}
+            <Button variant="outline" onClick={() => setImportOpen(true)}>
+              <Upload className="mr-1.5 h-4 w-4" /> Importer Excel
+            </Button>
             <Button onClick={() => setEditor({ mode: "create" })}>
               <Plus className="mr-1.5 h-4 w-4" /> Ajouter
             </Button>
+
             <button
               type="button"
               onClick={handleSignOut}

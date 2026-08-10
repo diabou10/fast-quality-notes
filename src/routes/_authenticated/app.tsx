@@ -82,8 +82,15 @@ type EditorState =
   | null;
 
 function AppPage() {
-  const { typologies, loading, saving, addTypology, updateTypology, deleteTypology } =
-    useTypologies();
+  const {
+    typologies,
+    loading,
+    saving,
+    addTypology,
+    updateTypology,
+    deleteTypology,
+    importRows,
+  } = useTypologies();
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const [email, setEmail] = useState<string | null>(null);
@@ -92,6 +99,8 @@ function AppPage() {
   const [editor, setEditor] = useState<EditorState>(null);
   const [toDelete, setToDelete] = useState<Typology | null>(null);
   const [kindFilter, setKindFilter] = useState<"all" | DescriptionKind>("all");
+  const [importOpen, setImportOpen] = useState(false);
+
 
   useEffect(() => {
     void supabase.auth.getUser().then(({ data }) => setEmail(data.user?.email ?? null));

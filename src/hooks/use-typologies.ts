@@ -54,7 +54,9 @@ export function useTypologies() {
   const create = useServerFn(createTypology);
   const update = useServerFn(updateTypologyFn);
   const remove = useServerFn(deleteTypologyFn);
+  const importFn = useServerFn(importTypologiesFn);
   const bootstrapped = useRef(false);
+
 
   const query = useQuery({
     queryKey: ["typologies"],

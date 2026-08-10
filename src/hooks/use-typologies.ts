@@ -135,9 +135,15 @@ export function useTypologies() {
     typologies: query.data ?? [],
     loading: query.isPending,
     saving:
-      createMutation.isPending || updateMutation.isPending || deleteMutation.isPending,
+      createMutation.isPending ||
+      updateMutation.isPending ||
+      deleteMutation.isPending ||
+      importMutation.isPending,
     addTypology,
     updateTypology,
     deleteTypology,
+    importRows,
+    importing: importMutation.isPending,
+
   };
 }

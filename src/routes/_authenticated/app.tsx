@@ -5,12 +5,14 @@ import {
   BookOpen,
   Check,
   Copy,
+  Download,
   Loader2,
   LogOut,
   Pencil,
   Plus,
   Search,
   Trash2,
+  Upload,
   X,
 } from "lucide-react";
 import { findTrainingRefs } from "@/data/training-book";
@@ -19,7 +21,13 @@ import {
   type Typology,
   type DescriptionKind,
 } from "@/hooks/use-typologies";
+import {
+  downloadTypologiesTemplate,
+  parseTypologiesFile,
+  type ImportRow,
+} from "@/lib/excel-typologies";
 import { supabase } from "@/integrations/supabase/client";
+
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";

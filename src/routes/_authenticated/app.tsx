@@ -5,7 +5,6 @@ import {
   BookOpen,
   Check,
   Copy,
-  ExternalLink,
   Loader2,
   LogOut,
   Pencil,
@@ -14,7 +13,7 @@ import {
   Trash2,
   X,
 } from "lucide-react";
-import { findTrainingRefs, trainingRefUrl } from "@/data/training-book";
+import { findTrainingRefs } from "@/data/training-book";
 import {
   useTypologies,
   type Typology,

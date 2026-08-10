@@ -91,6 +91,16 @@ export function useTypologies() {
   const createMutation = useMutation({ mutationFn: create, onSuccess: invalidate });
   const updateMutation = useMutation({ mutationFn: update, onSuccess: invalidate });
   const deleteMutation = useMutation({ mutationFn: remove, onSuccess: invalidate });
+  const importMutation = useMutation({ mutationFn: importFn, onSuccess: invalidate });
+
+  const importRows = useCallback(
+    (
+      rows: { title: string; kind: DescriptionKind; text: string }[],
+      mode: "merge" | "replace" = "merge",
+    ) => importMutation.mutateAsync({ data: { rows, mode } }),
+    [importMutation],
+  );
+
 
   const addTypology = useCallback(
     (title: string, descriptions: { kind: DescriptionKind; text: string }[]) => {

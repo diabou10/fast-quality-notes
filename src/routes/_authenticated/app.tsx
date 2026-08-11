@@ -467,6 +467,7 @@ function ImportDialog({
   const [mode, setMode] = useState<"merge" | "replace">("merge");
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
+  const [dragOver, setDragOver] = useState(false);
 
   const reset = () => {
     setRows([]);
@@ -507,6 +508,21 @@ function ImportDialog({
     }
   };
 
+  const typologyCount = useMemo(
+    () => new Set(rows.map((r) => r.title)).size,
+    [rows],
+  );
+
+  const passCount = useMemo(
+    () => rows.filter((r) => r.kind === "pass").length,
+    [rows],
+  );
+
+  const failCount = useMemo(
+    () => rows.filter((r) => r.kind === "fail").length,
+    [rows],
+  );
+
   return (
     <Dialog
       open={open}
@@ -517,110 +533,251 @@ function ImportDialog({
         }
       }}
     >
-      <DialogContent className="max-w-xl">
-        <DialogHeader>
-          <DialogTitle>Importer des typologies depuis Excel</DialogTitle>
-        </DialogHeader>
-
-        <div className="space-y-4">
-          <div className="rounded-lg border border-border bg-muted/40 p-4 text-sm">
-            <p className="text-muted-foreground">
-              Ton fichier doit contenir 3 colonnes&nbsp;:{" "}
-              <strong className="text-foreground">Typologie</strong>,{" "}
-              <strong className="text-foreground">Statut</strong> (Pass ou Fail) et{" "}
-              <strong className="text-foreground">Description</strong>.
+      <DialogContent className="max-w-2xl overflow-hidden p-0">
+        <div className="bg-gradient-to-br from-primary/10 via-info/5 to-background px-6 pb-5 pt-6">
+          <DialogHeader className="text-left">
+            <div className="mb-2 inline-flex h-10 w-10 items-center justify-center rounded-xl border border-primary/20 bg-card text-primary shadow-sm">
+              <FileSpreadsheet className="h-5 w-5" />
+            </div>
+            <DialogTitle className="text-xl font-semibold tracking-tight">
+              Importer depuis Excel
+            </DialogTitle>
+            <p className="mt-1 text-sm text-muted-foreground">
+              Charge ton fichier pour enrichir ou remplacer ta base de typologies.
             </p>
+          </DialogHeader>
+        </div>
+
+        <div className="space-y-5 px-6 pb-6 pt-2">
+          {/* Modèle */}
+          <div className="flex items-start gap-4 rounded-2xl border border-border bg-muted/30 p-4">
+            <div className="grid h-10 w-10 shrink-0 place-items-center rounded-xl border border-primary/15 bg-primary/10 text-primary">
+              <Download className="h-5 w-5" />
+            </div>
+            <div className="min-w-0 flex-1">
+              <p className="text-sm font-medium text-foreground">
+                Format attendu : 3 colonnes
+              </p>
+              <p className="mt-0.5 text-xs text-muted-foreground">
+                <span className="font-semibold text-foreground">Typologie</span>,{" "}
+                <span className="font-semibold text-foreground">Statut</span> (Pass/Fail),{" "}
+                <span className="font-semibold text-foreground">Description</span>.
+              </p>
+            </div>
             <Button
               type="button"
               variant="outline"
               size="sm"
-              className="mt-3"
+              className="shrink-0"
               onClick={() => downloadTypologiesTemplate()}
             >
-              <Download className="mr-1.5 h-4 w-4" /> Télécharger le modèle
+              Modèle
             </Button>
           </div>
 
-          <div>
-            <label
-              htmlFor="import-file"
-              className="text-sm font-medium text-foreground"
+          {/* Zone de drop */}
+          {!rows.length ? (
+            <div
+              onDragOver={(e) => {
+                e.preventDefault();
+                setDragOver(true);
+              }}
+              onDragLeave={() => setDragOver(false)}
+              onDrop={(e) => {
+                e.preventDefault();
+                setDragOver(false);
+                void handleFile(e.dataTransfer.files?.[0]);
+              }}
+              className={`relative rounded-2xl border-2 border-dashed p-6 text-center transition ${
+                dragOver
+                  ? "border-primary bg-primary/5"
+                  : "border-border bg-muted/20 hover:border-primary/40 hover:bg-muted/30"
+              }`}
             >
-              Fichier (.xlsx, .xls, .csv)
-            </label>
-            <Input
-              id="import-file"
-              type="file"
-              accept=".xlsx,.xls,.csv"
-              className="mt-1.5"
-              onChange={(e) => void handleFile(e.target.files?.[0])}
-            />
-          </div>
-
-          {rows.length > 0 && (
-            <div className="space-y-3">
-              <p className="text-sm text-foreground">
-                <strong>{rows.length}</strong> description(s) prête(s) à importer sur{" "}
-                <strong>{new Set(rows.map((r) => r.title)).size}</strong> typologie(s)
-                {skipped > 0 && (
-                  <span className="text-muted-foreground">
-                    {" "}
-                    — {skipped} ligne(s) ignorée(s)
-                  </span>
-                )}
-                .
-              </p>
-              <div className="max-h-40 space-y-1.5 overflow-y-auto rounded-lg border border-border p-3 text-xs">
-                {rows.slice(0, 20).map((r, i) => (
-                  <div key={i} className="flex gap-2">
-                    <span
-                      className={
-                        r.kind === "pass"
-                          ? "shrink-0 font-medium text-success"
-                          : "shrink-0 font-medium text-destructive"
-                      }
-                    >
-                      {r.kind === "pass" ? "Pass" : "Fail"}
-                    </span>
-                    <span className="shrink-0 font-medium">{r.title}</span>
-                    <span className="truncate text-muted-foreground">{r.text}</span>
-                  </div>
-                ))}
+              <input
+                id="import-file"
+                type="file"
+                accept=".xlsx,.xls,.csv"
+                className="absolute inset-0 cursor-pointer opacity-0"
+                onChange={(e) => void handleFile(e.target.files?.[0])}
+              />
+              <div className="pointer-events-none mx-auto grid h-12 w-12 place-items-center rounded-2xl border border-primary/15 bg-primary/10 text-primary">
+                <Upload className="h-6 w-6" />
               </div>
-              <div className="flex gap-2">
-                {(["merge", "replace"] as const).map((m) => (
-                  <button
-                    key={m}
-                    type="button"
-                    onClick={() => setMode(m)}
-                    className={`rounded-lg border px-3 py-1.5 text-xs font-medium transition ${
-                      mode === m
-                        ? "border-primary bg-primary/10 text-primary"
-                        : "border-border text-muted-foreground hover:bg-muted"
-                    }`}
+              <p className="mt-3 text-sm font-medium text-foreground">
+                Glisse un fichier ici, ou clique pour parcourir
+              </p>
+              <p className="mt-1 text-xs text-muted-foreground">
+                .xlsx, .xls, .csv — jusqu'à 2 000 lignes
+              </p>
+            </div>
+          ) : (
+            <div className="flex items-center gap-4 rounded-2xl border border-success/25 bg-success/5 p-4">
+              <div className="grid h-10 w-10 shrink-0 place-items-center rounded-xl border border-success/20 bg-success/10 text-success">
+                <FileCheck className="h-5 w-5" />
+              </div>
+              <div className="min-w-0 flex-1">
+                <p className="truncate text-sm font-medium text-foreground">{fileName}</p>
+                <p className="mt-0.5 text-xs text-muted-foreground">
+                  {rows.length} ligne{rows.length > 1 ? "s" : ""} valide
+                  {rows.length > 1 ? "s" : ""} sur {typologyCount} typologie
+                  {typologyCount > 1 ? "s" : ""}
+                  {skipped > 0 && (
+                    <span className="ml-1 text-warning">
+                      · {skipped} ignorée{skipped > 1 ? "s" : ""}
+                    </span>
+                  )}
+                </p>
+              </div>
+              <button
+                type="button"
+                onClick={reset}
+                className="inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-lg border border-border text-muted-foreground transition hover:bg-muted hover:text-foreground"
+                aria-label="Changer de fichier"
+              >
+                <X className="h-4 w-4" />
+              </button>
+            </div>
+          )}
+
+          {/* Stats */}
+          {rows.length > 0 && (
+            <div className="grid grid-cols-3 gap-3">
+              <div className="rounded-xl border border-border bg-card p-3 text-center shadow-sm">
+                <p className="text-lg font-semibold text-foreground">{rows.length}</p>
+                <p className="text-[10px] font-medium uppercase tracking-wider text-muted-foreground">
+                  Description{rows.length > 1 ? "s" : ""}
+                </p>
+              </div>
+              <div className="rounded-xl border border-success/25 bg-success/5 p-3 text-center">
+                <p className="text-lg font-semibold text-success">{passCount}</p>
+                <p className="text-[10px] font-medium uppercase tracking-wider text-success/80">
+                  Pass
+                </p>
+              </div>
+              <div className="rounded-xl border border-destructive/25 bg-destructive/5 p-3 text-center">
+                <p className="text-lg font-semibold text-destructive">{failCount}</p>
+                <p className="text-[10px] font-medium uppercase tracking-wider text-destructive/80">
+                  Fail
+                </p>
+              </div>
+            </div>
+          )}
+
+          {/* Aperçu */}
+          {rows.length > 0 && (
+            <div className="space-y-2">
+              <p className="text-xs font-medium uppercase tracking-wider text-muted-foreground">
+                Aperçu ({Math.min(rows.length, 20)} sur {rows.length})
+              </p>
+              <div className="max-h-44 overflow-y-auto rounded-xl border border-border bg-card p-1">
+                {rows.slice(0, 20).map((r, i) => (
+                  <div
+                    key={i}
+                    className="flex items-start gap-3 rounded-lg px-3 py-2.5 text-sm hover:bg-muted/40"
                   >
-                    {m === "merge"
-                      ? "Ajouter à ma base"
-                      : "Remplacer toute ma base"}
-                  </button>
+                    <span
+                      className={`mt-0.5 shrink-0 rounded-md border px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wider ${
+                        r.kind === "pass"
+                          ? "border-success/30 bg-success/10 text-success"
+                          : "border-destructive/30 bg-destructive/10 text-destructive"
+                      }`}
+                    >
+                      {r.kind}
+                    </span>
+                    <span className="shrink-0 font-medium text-foreground">{r.title}</span>
+                    <span className="min-w-0 truncate text-muted-foreground">{r.text}</span>
+                  </div>
                 ))}
               </div>
             </div>
           )}
 
-          {error && <p className="text-sm text-destructive">{error}</p>}
-          {fileName && !error && rows.length === 0 && (
-            <p className="text-sm text-muted-foreground">Analyse de {fileName}…</p>
+          {/* Mode */}
+          {rows.length > 0 && (
+            <div className="space-y-2">
+              <p className="text-xs font-medium uppercase tracking-wider text-muted-foreground">
+                Mode d'import
+              </p>
+              <div className="grid grid-cols-2 gap-3">
+                <button
+                  type="button"
+                  onClick={() => setMode("merge")}
+                  className={`flex items-start gap-3 rounded-xl border p-4 text-left transition ${
+                    mode === "merge"
+                      ? "border-primary bg-primary/5 shadow-sm"
+                      : "border-border bg-card hover:border-primary/30"
+                  }`}
+                >
+                  <div
+                    className={`grid h-9 w-9 shrink-0 place-items-center rounded-lg border ${
+                      mode === "merge"
+                        ? "border-primary/20 bg-primary/10 text-primary"
+                        : "border-border bg-muted text-muted-foreground"
+                    }`}
+                  >
+                    <Layers className="h-4 w-4" />
+                  </div>
+                  <div>
+                    <p className="text-sm font-medium text-foreground">Ajouter à ma base</p>
+                    <p className="mt-0.5 text-xs text-muted-foreground">
+                      Les nouvelles lignes viennent compléter tes typologies existantes.
+                    </p>
+                  </div>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setMode("replace")}
+                  className={`flex items-start gap-3 rounded-xl border p-4 text-left transition ${
+                    mode === "replace"
+                      ? "border-destructive bg-destructive/5 shadow-sm"
+                      : "border-border bg-card hover:border-destructive/30"
+                  }`}
+                >
+                  <div
+                    className={`grid h-9 w-9 shrink-0 place-items-center rounded-lg border ${
+                      mode === "replace"
+                        ? "border-destructive/20 bg-destructive/10 text-destructive"
+                        : "border-border bg-muted text-muted-foreground"
+                    }`}
+                  >
+                    <RefreshCw className="h-4 w-4" />
+                  </div>
+                  <div>
+                    <p className="text-sm font-medium text-foreground">Remplacer ma base</p>
+                    <p className="mt-0.5 text-xs text-muted-foreground">
+                      Supprime toutes tes typologies actuelles avant d'importer.
+                    </p>
+                  </div>
+                </button>
+              </div>
+            </div>
+          )}
+
+          {/* Erreur */}
+          {error && (
+            <div className="flex items-start gap-3 rounded-xl border border-destructive/25 bg-destructive/5 p-3 text-sm text-destructive">
+              <FileX className="mt-0.5 h-4 w-4 shrink-0" />
+              <span>{error}</span>
+            </div>
+          )}
+
+          {fileName && !error && rows.length === 0 && !busy && (
+            <div className="flex items-center gap-2 rounded-xl border border-info/25 bg-info/5 p-3 text-sm text-info">
+              <Loader2 className="h-4 w-4 animate-spin" />
+              <span>Analyse de {fileName}…</span>
+            </div>
           )}
         </div>
 
-        <DialogFooter>
-          <Button variant="ghost" onClick={onClose}>
+        <DialogFooter className="gap-2 border-t border-border bg-muted/20 px-6 py-4">
+          <Button variant="ghost" onClick={onClose} disabled={busy}>
             Annuler
           </Button>
           <Button
             onClick={() => void handleImport()}
             disabled={rows.length === 0 || busy}
+            className="min-w-[8rem]"
           >
             {busy && <Loader2 className="mr-1.5 h-4 w-4 animate-spin" />}
             Importer {rows.length > 0 ? `(${rows.length})` : ""}

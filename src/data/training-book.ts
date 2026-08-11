@@ -269,6 +269,46 @@ export function findTrainingRefs(
   return scored.slice(0, limit).map((s) => s.section);
 }
 
+/**
+ * Détecte automatiquement la typologie probable d'une description libre,
+ * en s'appuyant uniquement sur le texte saisi (sans titre).
+ */
+export function detectTypologyFromText(
+  text: string,
+  knownTitles: string[] = [],
+): { title: string; confidence: number; sections: TrainingSection[] } | null {
+  const clean = text.trim();
+  if (clean.length < 12) return null;
+  const haystack = norm(clean);
+
+  const scored = TRAINING_SECTIONS.map((section) => {
+    let score = 0;
+    for (const kw of section.keywords) {
+      if (haystack.includes(norm(kw))) score += Math.min(kw.length, 20);
+    }
+    return { section, score };
+  })
+    .filter((s) => s.score > 0)
+    .sort((a, b) => b.score - a.score);
+
+  if (scored.length === 0) return null;
+
+  const best = scored[0];
+  const base = best.section.title.split("—")[0].trim();
+
+  // Si l'utilisateur a déjà une typologie proche, on réutilise son intitulé.
+  const known = knownTitles.find(
+    (t) => norm(t) === norm(base) || norm(base).includes(norm(t)) || norm(t).includes(norm(base)),
+  );
+
+  return {
+    title: known ?? base,
+    confidence: Math.min(100, Math.round((best.score / 40) * 100)),
+    sections: scored.slice(0, 2).map((s) => s.section),
+  };
+}
+
+
 /** Training book (PDF hébergé avec l'app) — ouvrable à une page précise. */
 export const TRAINING_BOOK_URL =
   "/__l5e/assets-v1/79c5e631-70e3-4f4f-b76d-079368bd70cf/training-book.pdf";

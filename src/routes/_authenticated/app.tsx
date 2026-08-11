@@ -534,8 +534,9 @@ function ImportDialog({
         }
       }}
     >
-      <DialogContent className="max-w-2xl overflow-hidden p-0">
-        <div className="bg-gradient-to-br from-primary/10 via-info/5 to-background px-6 pb-5 pt-6">
+      <DialogContent className="flex max-h-[90dvh] w-[calc(100vw-2rem)] max-w-2xl flex-col gap-0 overflow-hidden p-0 sm:w-full">
+        <div className="shrink-0 bg-gradient-to-br from-primary/10 via-info/5 to-background px-6 pb-5 pt-6">
+
           <DialogHeader className="text-left">
             <div className="mb-2 inline-flex h-10 w-10 items-center justify-center rounded-xl border border-primary/20 bg-card text-primary shadow-sm">
               <FileSpreadsheet className="h-5 w-5" />
@@ -549,7 +550,7 @@ function ImportDialog({
           </DialogHeader>
         </div>
 
-        <div className="space-y-5 px-6 pb-6 pt-2">
+        <div className="flex-1 space-y-5 overflow-y-auto px-6 pb-6 pt-4">
           {/* Modèle */}
           <div className="flex items-start gap-4 rounded-2xl border border-border bg-muted/30 p-4">
             <div className="grid h-10 w-10 shrink-0 place-items-center rounded-xl border border-primary/15 bg-primary/10 text-primary">
@@ -771,7 +772,7 @@ function ImportDialog({
           )}
         </div>
 
-        <DialogFooter className="gap-2 border-t border-border bg-muted/20 px-6 py-4">
+        <DialogFooter className="shrink-0 gap-2 border-t border-border bg-muted/20 px-6 py-4">
           <Button variant="ghost" onClick={onClose} disabled={busy}>
             Annuler
           </Button>

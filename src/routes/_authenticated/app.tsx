@@ -20,7 +20,7 @@ import {
   Upload,
   X,
 } from "lucide-react";
-import { findTrainingRefs } from "@/data/training-book";
+import { detectTypologyFromText, findTrainingRefs } from "@/data/training-book";
 import {
   useTypologies,
   type Typology,
@@ -405,6 +405,7 @@ function AppPage() {
 
       <TypologyEditor
         state={editor}
+        knownTitles={typologies.map((t) => t.title)}
         onClose={() => setEditor(null)}
         onCreate={(title, descs) => {
           addTypology(title, descs);
@@ -533,8 +534,9 @@ function ImportDialog({
         }
       }}
     >
-      <DialogContent className="max-w-2xl overflow-hidden p-0">
-        <div className="bg-gradient-to-br from-primary/10 via-info/5 to-background px-6 pb-5 pt-6">
+      <DialogContent className="flex max-h-[90dvh] w-[calc(100vw-2rem)] max-w-2xl flex-col gap-0 overflow-hidden p-0 sm:w-full">
+        <div className="shrink-0 bg-gradient-to-br from-primary/10 via-info/5 to-background px-6 pb-5 pt-6">
+
           <DialogHeader className="text-left">
             <div className="mb-2 inline-flex h-10 w-10 items-center justify-center rounded-xl border border-primary/20 bg-card text-primary shadow-sm">
               <FileSpreadsheet className="h-5 w-5" />
@@ -548,7 +550,7 @@ function ImportDialog({
           </DialogHeader>
         </div>
 
-        <div className="space-y-5 px-6 pb-6 pt-2">
+        <div className="flex-1 space-y-5 overflow-y-auto px-6 pb-6 pt-4">
           {/* Modèle */}
           <div className="flex items-start gap-4 rounded-2xl border border-border bg-muted/30 p-4">
             <div className="grid h-10 w-10 shrink-0 place-items-center rounded-xl border border-primary/15 bg-primary/10 text-primary">
@@ -770,7 +772,7 @@ function ImportDialog({
           )}
         </div>
 
-        <DialogFooter className="gap-2 border-t border-border bg-muted/20 px-6 py-4">
+        <DialogFooter className="shrink-0 gap-2 border-t border-border bg-muted/20 px-6 py-4">
           <Button variant="ghost" onClick={onClose} disabled={busy}>
             Annuler
           </Button>
@@ -793,11 +795,13 @@ type DraftDesc = { id?: string; kind: DescriptionKind; text: string };
 
 function TypologyEditor({
   state,
+  knownTitles,
   onClose,
   onCreate,
   onUpdate,
 }: {
   state: EditorState;
+  knownTitles: string[];
   onClose: () => void;
   onCreate: (
     title: string,
@@ -842,14 +846,14 @@ function TypologyEditor({
 
   return (
     <Dialog open={open} onOpenChange={(o) => !o && onClose()}>
-      <DialogContent className="max-w-2xl">
-        <DialogHeader>
+      <DialogContent className="flex max-h-[90dvh] w-[calc(100vw-2rem)] max-w-2xl flex-col gap-0 overflow-hidden p-0 sm:w-full">
+        <DialogHeader className="shrink-0 border-b border-border px-6 py-4 text-left">
           <DialogTitle>
             {state?.mode === "edit" ? "Modifier la typologie" : "Nouvelle typologie"}
           </DialogTitle>
         </DialogHeader>
 
-        <div className="space-y-4">
+        <div className="flex-1 space-y-4 overflow-y-auto px-6 py-4">
           <div className="space-y-1.5">
             <label className="text-xs font-medium text-muted-foreground">Titre</label>
             <Input
@@ -864,9 +868,12 @@ function TypologyEditor({
             <label className="text-xs font-medium text-muted-foreground">
               Descriptions ({descs.length})
             </label>
-            <div className="max-h-[45vh] space-y-2 overflow-y-auto pr-1">
-              {descs.map((d, idx) => (
-                <div key={idx} className="flex items-start gap-2">
+            <div className="space-y-3">
+              {descs.map((d, idx) => {
+                const detection = detectTypologyFromText(d.text, knownTitles);
+                return (
+                <div key={idx} className="space-y-2 rounded-xl border border-border bg-muted/20 p-3">
+                <div className="flex items-start gap-2">
                   <div className="mt-1 flex flex-col gap-1">
                     {(["pass", "fail"] as const).map((k) => (
                       <button
@@ -900,7 +907,7 @@ function TypologyEditor({
                       )
                     }
                     placeholder="Décris la typologie…"
-                    className="min-h-[80px] flex-1"
+                    className="min-h-[80px] flex-1 bg-card"
                   />
                   <button
                     type="button"
@@ -917,7 +924,45 @@ function TypologyEditor({
                     <X className="h-4 w-4" />
                   </button>
                 </div>
-              ))}
+
+                {detection && (
+                  <div className="rounded-lg border border-info/25 bg-info/5 p-3">
+                    <div className="flex flex-wrap items-center gap-2">
+                      <BookOpen className="h-3.5 w-3.5 shrink-0 text-info" />
+                      <span className="text-[11px] font-semibold uppercase tracking-wider text-info">
+                        Typologie détectée
+                      </span>
+                      <span className="rounded-md border border-info/30 bg-card px-2 py-0.5 text-xs font-medium text-foreground">
+                        {detection.title}
+                      </span>
+                      {title.trim().toLowerCase() !== detection.title.toLowerCase() && (
+                        <Button
+                          type="button"
+                          size="sm"
+                          variant="outline"
+                          className="h-7 px-2 text-xs"
+                          onClick={() => setTitle(detection.title)}
+                        >
+                          Appliquer
+                        </Button>
+                      )}
+                    </div>
+                    <div className="mt-2 space-y-2">
+                      {detection.sections.map((s) => (
+                        <div key={s.id} className="text-xs leading-relaxed">
+                          <p className="font-medium text-foreground">
+                            {s.title}{" "}
+                            <span className="font-normal text-muted-foreground">({s.page})</span>
+                          </p>
+                          <p className="mt-0.5 text-muted-foreground">{s.excerpt}</p>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+                </div>
+                );
+              })}
             </div>
             <Button
               type="button"
@@ -930,7 +975,7 @@ function TypologyEditor({
           </div>
         </div>
 
-        <DialogFooter>
+        <DialogFooter className="shrink-0 gap-2 border-t border-border bg-muted/20 px-6 py-4">
           <Button variant="ghost" onClick={onClose}>
             Annuler
           </Button>
@@ -940,3 +985,4 @@ function TypologyEditor({
     </Dialog>
   );
 }
+

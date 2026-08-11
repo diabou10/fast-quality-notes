@@ -793,11 +793,13 @@ type DraftDesc = { id?: string; kind: DescriptionKind; text: string };
 
 function TypologyEditor({
   state,
+  knownTitles,
   onClose,
   onCreate,
   onUpdate,
 }: {
   state: EditorState;
+  knownTitles: string[];
   onClose: () => void;
   onCreate: (
     title: string,

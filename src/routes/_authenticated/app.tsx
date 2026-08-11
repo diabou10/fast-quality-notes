@@ -20,7 +20,7 @@ import {
   Upload,
   X,
 } from "lucide-react";
-import { findTrainingRefs } from "@/data/training-book";
+import { detectTypologyFromText, findTrainingRefs } from "@/data/training-book";
 import {
   useTypologies,
   type Typology,

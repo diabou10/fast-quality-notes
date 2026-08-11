@@ -405,6 +405,7 @@ function AppPage() {
 
       <TypologyEditor
         state={editor}
+        knownTitles={typologies.map((t) => t.title)}
         onClose={() => setEditor(null)}
         onCreate={(title, descs) => {
           addTypology(title, descs);

@@ -1,34 +1,54 @@
-# Import intelligent : détection automatique Pass / Fail
+## Où sont tes données aujourd'hui
 
-Objectif : pouvoir importer un fichier (Excel, CSV/Google Sheets exporté, Word) contenant seulement la typologie et la description — l'application déduit elle-même si chaque description est un **Pass** ou un **Fail**, en s'appuyant sur le training book.
+Dans le `localStorage` du navigateur (clé `qualitynotes.typologies.v2`), via `src/hooks/use-typologies.ts`. C'est du stockage **local à chaque navigateur** : aucune donnée n'est envoyée au serveur. D'où ton test — l'autre personne modifie sa copie locale, invisible pour toi (et perdue si elle vide son cache ou change d'appareil).
 
-## Ce qui change pour l'utilisateur
+## Objectif
 
-1. La colonne « Statut » devient facultative. Si elle est absente ou vide, le statut est déduit du texte.
-2. Nouveaux formats acceptés : `.xlsx`, `.xls`, `.csv` (export Google Sheets) et `.docx` (Word).
-3. Dans l'aperçu avant import, chaque ligne affiche son statut avec une mention « déduit » quand il n'était pas fourni, et le statut reste modifiable ligne par ligne avant validation.
-4. Le modèle Excel téléchargeable est mis à jour : la colonne Statut est indiquée comme optionnelle.
+Chaque utilisateur a un compte, retrouve ses données sur n'importe quel appareil, et démarre avec la base pré-remplie (17 process / 52 descriptions) — privée et modifiable individuellement.
 
-## Règle de détection Pass / Fail
+## Ce qu'on met en place
 
-Classement par indices textuels, dans cet ordre :
-- Statut explicite fourni dans le fichier → prioritaire, aucune déduction.
-- Marqueurs d'échec : « échec », « n'a pas », « omis », « oublié », « manquement », « aurait dû », « il est important de », « il aurait fallu », « non conforme », « sans informer », « ne l'a pas », « défaut de »…
-- Marqueurs de réussite : « a procédé », « a informé », « après identification et présentation », « a pris congé », « conforme », « a bien », « a correctement »…
-- Formulation prescriptive (conseil au rep) → Fail ; formulation narrative d'actions accomplies → Pass.
-- Aucun indice net → Pass par défaut, la ligne est marquée « à vérifier » dans l'aperçu.
+**1. Lovable Cloud (backend intégré)**
+Base de données + authentification, sans compte externe à créer.
 
-En parallèle, la typologie détectée via le training book (`detectTypologyFromText`) sert de renfort : si le titre du fichier est vide, la typologie détectée est proposée.
+**2. Authentification**
+- Email / mot de passe
+- Connexion Google (SSO) en un clic
+- Page `/auth` (connexion + inscription), déconnexion dans le header
+- L'app devient privée : sans connexion → redirection vers `/auth`
+
+**3. Base de données (privée par utilisateur)**
+
+```text
+typologies
+  id, user_id, title, position, created_at
+
+descriptions
+  id, typology_id, user_id, kind ('pass'|'fail'), text, position, created_at
+```
+
+Sécurité au niveau des lignes (RLS) : chaque utilisateur ne peut lire/écrire **que** ses propres lignes. Aucune donnée partagée, aucun accès croisé possible.
+
+**4. Pré-remplissage automatique**
+À la première connexion, les 17 process et 52 descriptions du seed actuel sont copiés dans le compte de l'utilisateur. Ensuite il ajoute / modifie / supprime librement — ça n'affecte personne d'autre.
+
+**5. Migration des données existantes**
+À la première connexion, si le navigateur contient déjà des données locales, on propose de les importer dans le compte (sinon on charge le seed). Ça évite de perdre ce que tu as déjà saisi.
+
+**6. Interface**
+Aucun changement visuel majeur : même recherche instantanée, mêmes badges Pass/Fail, mêmes boutons Copier / Éditer / Supprimer. Seuls ajouts : écran de connexion, avatar + déconnexion dans le header, et un léger indicateur de sauvegarde.
 
 ## Détails techniques
 
-- `src/lib/excel-typologies.ts` :
-  - extraire la classification dans `inferKind(text): { kind, inferred, confidence }` avec les listes de marqueurs ci-dessus (normalisation sans accents, déjà présente).
-  - `ImportRow` gagne `inferred?: boolean`.
-  - `parseTypologiesFile` : `kind` explicite si colonne présente, sinon `inferKind`.
-  - nouveau `parseDocxFile` via `mammoth` (extraction texte) : lignes « Typologie : description », titres de paragraphes gras/H1 traités comme typologie courante, paragraphes/puces suivants comme descriptions ; fallback sur `detectTypologyFromText` si aucun titre.
-  - dispatch par extension dans `parseTypologiesFile`.
-  - `downloadTypologiesTemplate` : mention « Statut (optionnel) » + ligne d'exemple sans statut.
-- `src/routes/_authenticated/app.tsx` (`ImportDialog`) : `accept=".xlsx,.xls,.csv,.docx"`, texte de la zone de dépôt mis à jour, badges Pass/Fail cliquables dans l'aperçu pour corriger un statut déduit, compteur « X statuts déduits ».
-- Dépendance à ajouter : `mammoth` (lecture .docx côté navigateur).
-- Aucun changement de base de données ni de fonctions serveur : l'import existant reçoit toujours `{ title, kind, text }`.
+- Activation Lovable Cloud, puis migration SQL créant les 2 tables avec `GRANT` + RLS scopée sur `auth.uid()`.
+- Lecture/écriture via server functions authentifiées (`requireSupabaseAuth`), routes protégées sous `src/routes/_authenticated/`.
+- Route publique `/` = page d'accueil avec bouton « Se connecter » ; l'app passe sous `/app`.
+- `use-typologies.ts` réécrit : TanStack Query (`useQuery` + mutations) au lieu de `localStorage`, avec mise à jour optimiste pour garder la sensation « ultra-rapide ».
+- Seeding effectué côté serveur à la première session (fonction serveur idempotente).
+- Configuration Google via `supabase--configure_social_auth`.
+
+## Hors périmètre
+
+- Pas de partage / collaboration entre comptes (chaque base reste privée).
+- Pas de mode hors-ligne.
+- SSO limité à Google (Apple possible ensuite si tu veux).
